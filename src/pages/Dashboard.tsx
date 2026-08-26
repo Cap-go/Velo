@@ -17,6 +17,8 @@ export function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<ProgramStats | null>(null);
   const [programName, setProgramName] = useState("");
+  const [destinationUrl, setDestinationUrl] = useState("");
+  const [editDestinationUrl, setEditDestinationUrl] = useState("");
   const [affiliateName, setAffiliateName] = useState("");
   const [lastLink, setLastLink] = useState("");
   const [error, setError] = useState("");
@@ -44,6 +46,11 @@ export function DashboardPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load stats"));
   }, [selectedId, lastLink]);
 
+  useEffect(() => {
+    const program = programs.find((p) => p.id === selectedId) ?? stats?.program;
+    setEditDestinationUrl(program?.destination_url ?? "");
+  }, [selectedId, programs, stats?.program]);
+
   if (loading) {
     return (
       <Shell>
@@ -59,12 +66,31 @@ export function DashboardPage() {
     setBusy(true);
     setError("");
     try {
-      const { program } = await api.createProgram(programName);
+      const { program } = await api.createProgram(programName, destinationUrl);
       setPrograms((prev) => [program, ...prev]);
       setSelectedId(program.id);
       setProgramName("");
+      setDestinationUrl("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create program");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveDestination(e: FormEvent) {
+    e.preventDefault();
+    if (!selectedId) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { program } = await api.updateProgram(selectedId, {
+        destination_url: editDestinationUrl,
+      });
+      setPrograms((prev) => prev.map((item) => (item.id === program.id ? program : item)));
+      if (stats) setStats({ ...stats, program });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update destination");
     } finally {
       setBusy(false);
     }
@@ -127,6 +153,14 @@ export function DashboardPage() {
                 onChange={(e) => setProgramName(e.target.value)}
                 required
               />
+              <Field
+                label="Destination URL"
+                type="url"
+                placeholder="https://yourapp.com"
+                value={destinationUrl}
+                onChange={(e) => setDestinationUrl(e.target.value)}
+                required
+              />
               <button className="btn btn-primary w-full" disabled={busy} type="submit">
                 Create program
               </button>
@@ -158,27 +192,57 @@ export function DashboardPage() {
               <>
                 <div className="card p-5">
                   <h2 className="font-semibold">Program details</h2>
-                  <p className="mt-2 text-sm text-[var(--velo-muted)]">
+                  <form className="mt-4 space-y-3" onSubmit={saveDestination}>
+                    <Field
+                      label="Destination URL"
+                      type="url"
+                      placeholder="https://yourapp.com/pricing"
+                      value={editDestinationUrl}
+                      onChange={(e) => setEditDestinationUrl(e.target.value)}
+                      required
+                    />
+                    <button className="btn btn-secondary" disabled={busy} type="submit">
+                      Save destination
+                    </button>
+                  </form>
+                  <p className="mt-4 text-sm text-[var(--velo-muted)]">
+                    Tracking links redirect here and append{" "}
+                    <span className="mono">velo_ref</span> for merchant-site attribution.
+                  </p>
+                  <p className="mt-4 text-sm text-[var(--velo-muted)]">
                     Use this API key in your conversion snippet or server-side POST.
                   </p>
                   <div className="mono mt-3 break-all rounded-xl bg-[var(--velo-bg)] p-3">
                     {selectedProgram.api_key}
                   </div>
                   <pre className="mono mt-4 overflow-x-auto rounded-xl bg-[var(--velo-bg)] p-3 text-xs leading-relaxed">
-                    {`fetch("${window.location.origin}/api/v1/convert", {
+                    {`var ref = localStorage.getItem("velo_ref") || "";
+fetch("${window.location.origin}/api/v1/convert", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     "X-Program-Key": "${selectedProgram.api_key}"
   },
-  credentials: "include",
-  body: JSON.stringify({ order_id: "order_123", amount: 49 })
+  body: JSON.stringify({
+    order_id: "order_123",
+    amount: 49,
+    affiliate_code: ref
+  })
 });`}
                   </pre>
+                  <p className="mt-3 text-sm text-[var(--velo-muted)]">
+                    Install snippet:{" "}
+                    <span className="mono">{`${window.location.origin}/api/v1/snippet`}</span>
+                  </p>
                 </div>
 
                 <div className="card p-5">
                   <h2 className="font-semibold">Add affiliate</h2>
+                  {!selectedProgram.destination_url && (
+                    <p className="mt-2 text-sm text-amber-700">
+                      Set a destination URL before creating affiliate links.
+                    </p>
+                  )}
                   <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={createAffiliate}>
                     <Field
                       label="Affiliate name"
@@ -189,7 +253,7 @@ export function DashboardPage() {
                     />
                     <button
                       className="btn btn-primary self-end sm:mt-7"
-                      disabled={busy}
+                      disabled={busy || !selectedProgram.destination_url}
                       type="submit"
                     >
                       Create link

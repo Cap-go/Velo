@@ -2,6 +2,8 @@ import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { initSql } from "./schema";
 
+const MERCHANT_DESTINATION = "https://merchant.example.com/pricing";
+
 async function json<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
@@ -16,6 +18,40 @@ function cookieFrom(response: Response, name: string): string | undefined {
     if (key.trim() === name) return value;
   }
   return undefined;
+}
+
+async function signupAndCreateProgram(email: string) {
+  const signup = await SELF.fetch("http://localhost/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password: "password123",
+    }),
+  });
+  expect(signup.status).toBe(201);
+  const session = cookieFrom(signup, "velo_session");
+  expect(session).toBeTruthy();
+
+  const authHeaders = {
+    "Content-Type": "application/json",
+    Cookie: `velo_session=${session}`,
+  };
+
+  const programRes = await SELF.fetch("http://localhost/api/programs", {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({
+      name: "Test SaaS",
+      destination_url: MERCHANT_DESTINATION,
+    }),
+  });
+  expect(programRes.status).toBe(201);
+  const { program } = await json<{
+    program: { id: string; api_key: string; destination_url: string };
+  }>(programRes);
+
+  return { session: session!, authHeaders, program };
 }
 
 describe("affiliate tracking flow", () => {
@@ -37,30 +73,9 @@ describe("affiliate tracking flow", () => {
   });
 
   it("signup → program → affiliate → click → convert → stats", async () => {
-    const signup = await SELF.fetch("http://localhost/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "founder@example.com",
-        password: "password123",
-      }),
-    });
-    expect(signup.status).toBe(201);
-    const session = cookieFrom(signup, "velo_session");
-    expect(session).toBeTruthy();
-
-    const authHeaders = {
-      "Content-Type": "application/json",
-      Cookie: `velo_session=${session}`,
-    };
-
-    const programRes = await SELF.fetch("http://localhost/api/programs", {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ name: "Test SaaS" }),
-    });
-    expect(programRes.status).toBe(201);
-    const { program } = await json<{ program: { id: string; api_key: string } }>(programRes);
+    const { session, authHeaders, program } = await signupAndCreateProgram(
+      "founder@example.com",
+    );
 
     const affiliateRes = await SELF.fetch(
       `http://localhost/api/programs/${program.id}/affiliates`,
@@ -75,33 +90,48 @@ describe("affiliate tracking flow", () => {
       affiliate: { code: string };
       tracking_url: string;
     }>(affiliateRes);
+    expect(tracking_url).toBe(`http://localhost:5173/r/${affiliate.code}`);
+    expect(tracking_url).not.toContain("example.com");
 
     const clickRes = await SELF.fetch(tracking_url, { redirect: "manual" });
     expect(clickRes.status).toBe(302);
     const refCookie = cookieFrom(clickRes, "_velo_ref");
     expect(refCookie).toBe(affiliate.code);
 
+    const location = clickRes.headers.get("Location");
+    expect(location).toBeTruthy();
+    const redirectUrl = new URL(location!);
+    expect(redirectUrl.origin + redirectUrl.pathname).toBe(MERCHANT_DESTINATION);
+    expect(redirectUrl.searchParams.get("velo_ref")).toBe(affiliate.code);
+
     const convertRes = await SELF.fetch("http://localhost/api/v1/convert", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Program-Key": program.api_key,
-        Cookie: `_velo_ref=${refCookie}`,
       },
-      body: JSON.stringify({ order_id: "order_001", amount: 99.5 }),
+      body: JSON.stringify({
+        order_id: "order_001",
+        amount: 99.5,
+        affiliate_code: affiliate.code,
+      }),
     });
     expect(convertRes.status).toBe(200);
     const conversion = await json<{ status: string }>(convertRes);
     expect(conversion.status).toBe("created");
+    expect(convertRes.headers.get("Access-Control-Allow-Origin")).toBe("*");
 
     const duplicateRes = await SELF.fetch("http://localhost/api/v1/convert", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Program-Key": program.api_key,
-        Cookie: `_velo_ref=${refCookie}`,
       },
-      body: JSON.stringify({ order_id: "order_001", amount: 99.5 }),
+      body: JSON.stringify({
+        order_id: "order_001",
+        amount: 99.5,
+        affiliate_code: affiliate.code,
+      }),
     });
     const duplicate = await json<{ status: string }>(duplicateRes);
     expect(duplicate.status).toBe("duplicate");
@@ -128,5 +158,73 @@ describe("affiliate tracking flow", () => {
     expect(stats.affiliates[0]?.code).toBe(affiliate.code);
     expect(stats.affiliates[0]?.clicks).toBe(1);
     expect(stats.affiliates[0]?.conversions).toBe(1);
+  });
+
+  it("rejects off-host redirect overrides", async () => {
+    const { authHeaders, program } = await signupAndCreateProgram("security@example.com");
+
+    const affiliateRes = await SELF.fetch(
+      `http://localhost/api/programs/${program.id}/affiliates`,
+      {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ name: "Partner Two" }),
+      },
+    );
+    const { affiliate } = await json<{ affiliate: { code: string } }>(affiliateRes);
+
+    const phishing = await SELF.fetch(
+      `http://localhost/r/${affiliate.code}?url=${encodeURIComponent("https://evil.example/phish")}`,
+      { redirect: "manual" },
+    );
+    expect(phishing.status).toBe(400);
+    expect(await phishing.text()).toContain("not allowed");
+
+    const javascript = await SELF.fetch(
+      `http://localhost/r/${affiliate.code}?url=${encodeURIComponent("javascript:alert(1)")}`,
+      { redirect: "manual" },
+    );
+    expect(javascript.status).toBe(400);
+  });
+
+  it("allows same-host deep links in url override", async () => {
+    const { authHeaders, program } = await signupAndCreateProgram("deeplink@example.com");
+
+    const affiliateRes = await SELF.fetch(
+      `http://localhost/api/programs/${program.id}/affiliates`,
+      {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ name: "Partner Deep Link" }),
+      },
+    );
+    const { affiliate } = await json<{ affiliate: { code: string } }>(affiliateRes);
+
+    const deepLink = "https://merchant.example.com/checkout?plan=pro";
+    const clickRes = await SELF.fetch(
+      `http://localhost/r/${affiliate.code}?url=${encodeURIComponent(deepLink)}`,
+      { redirect: "manual" },
+    );
+    expect(clickRes.status).toBe(302);
+    const location = new URL(clickRes.headers.get("Location")!);
+    expect(location.hostname).toBe("merchant.example.com");
+    expect(location.pathname).toBe("/checkout");
+    expect(location.searchParams.get("plan")).toBe("pro");
+    expect(location.searchParams.get("velo_ref")).toBe(affiliate.code);
+  });
+
+  it("supports CORS preflight on convert", async () => {
+    const preflight = await SELF.fetch("http://localhost/api/v1/convert", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://merchant.example.com",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,x-program-key",
+      },
+    });
+
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(preflight.headers.get("Access-Control-Allow-Methods")).toContain("POST");
   });
 });

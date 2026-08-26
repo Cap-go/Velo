@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import {
   getAffiliateByCode,
   getProgramByApiKey,
@@ -9,6 +10,16 @@ import { readAffiliateCookie } from "../lib/auth";
 import { id } from "../lib/utils";
 
 const convert = new Hono<{ Bindings: Env }>();
+
+convert.use(
+  "*",
+  cors({
+    origin: "*",
+    allowMethods: ["POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "X-Program-Key"],
+    maxAge: 86400,
+  }),
+);
 
 convert.post("/", async (c) => {
   const apiKey = c.req.header("X-Program-Key");
@@ -34,11 +45,11 @@ convert.post("/", async (c) => {
     return c.json({ error: "order_id and amount (number >= 0) required" }, 400);
   }
 
-  let affiliateCode =
+  const affiliateCode =
     body.affiliate_code?.trim() || readAffiliateCookie(c.req.header("Cookie") ?? null);
 
   if (!affiliateCode) {
-    return c.json({ error: "No affiliate attribution (cookie or affiliate_code)" }, 400);
+    return c.json({ error: "No affiliate attribution (affiliate_code required)" }, 400);
   }
 
   const affiliate = await getAffiliateByCode(c.env.DB, affiliateCode);

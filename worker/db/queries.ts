@@ -30,7 +30,9 @@ export async function createUser(
 
 export async function listPrograms(db: D1Database, userId: string): Promise<Program[]> {
   const { results } = await db
-    .prepare("SELECT id, user_id, name, slug, api_key, created_at FROM programs WHERE user_id = ? ORDER BY created_at DESC")
+    .prepare(
+      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE user_id = ? ORDER BY created_at DESC",
+    )
     .bind(userId)
     .all<Program>();
   return results ?? [];
@@ -38,26 +40,71 @@ export async function listPrograms(db: D1Database, userId: string): Promise<Prog
 
 export async function getProgram(db: D1Database, programId: string, userId: string) {
   return db
-    .prepare("SELECT id, user_id, name, slug, api_key, created_at FROM programs WHERE id = ? AND user_id = ?")
+    .prepare(
+      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE id = ? AND user_id = ?",
+    )
     .bind(programId, userId)
+    .first<Program>();
+}
+
+export async function getProgramById(db: D1Database, programId: string) {
+  return db
+    .prepare(
+      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE id = ?",
+    )
+    .bind(programId)
     .first<Program>();
 }
 
 export async function getProgramByApiKey(db: D1Database, apiKey: string) {
   return db
-    .prepare("SELECT id, user_id, name, slug, api_key, created_at FROM programs WHERE api_key = ?")
+    .prepare(
+      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE api_key = ?",
+    )
     .bind(apiKey)
     .first<Program>();
 }
 
-export async function createProgram(
-  db: D1Database,
-  program: Program,
-) {
+export async function createProgram(db: D1Database, program: Program) {
   await db
-    .prepare("INSERT INTO programs (id, user_id, name, slug, api_key, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .bind(program.id, program.user_id, program.name, program.slug, program.api_key, program.created_at)
+    .prepare(
+      "INSERT INTO programs (id, user_id, name, slug, api_key, destination_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      program.id,
+      program.user_id,
+      program.name,
+      program.slug,
+      program.api_key,
+      program.destination_url,
+      program.created_at,
+    )
     .run();
+}
+
+export async function updateProgram(
+  db: D1Database,
+  programId: string,
+  userId: string,
+  updates: { name?: string; destination_url?: string | null },
+): Promise<Program | null> {
+  const existing = await getProgram(db, programId, userId);
+  if (!existing) return null;
+
+  const next = {
+    name: updates.name?.trim() || existing.name,
+    destination_url:
+      updates.destination_url === undefined
+        ? existing.destination_url
+        : updates.destination_url,
+  };
+
+  await db
+    .prepare("UPDATE programs SET name = ?, destination_url = ? WHERE id = ? AND user_id = ?")
+    .bind(next.name, next.destination_url, programId, userId)
+    .run();
+
+  return getProgram(db, programId, userId);
 }
 
 export async function listAffiliates(db: D1Database, programId: string): Promise<Affiliate[]> {

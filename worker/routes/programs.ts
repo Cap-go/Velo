@@ -6,9 +6,11 @@ import {
   getProgramStats,
   listAffiliates,
   listPrograms,
+  updateProgram,
 } from "../db/queries";
 import type { Env } from "../types";
 import { affiliateCode, apiKey, id, slugify } from "../lib/utils";
+import { buildTrackingUrl, parseHttpUrl } from "../lib/urls";
 import { requireUser } from "./auth";
 
 const programs = new Hono<{ Bindings: Env }>();
@@ -24,9 +26,15 @@ programs.post("/", async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-  const body = await c.req.json<{ name?: string }>();
+  const body = await c.req.json<{ name?: string; destination_url?: string }>();
   const name = body.name?.trim();
+  const destinationRaw = body.destination_url?.trim();
   if (!name) return c.json({ error: "Program name required" }, 400);
+
+  const destination = destinationRaw ? parseHttpUrl(destinationRaw) : null;
+  if (!destination) {
+    return c.json({ error: "Valid destination URL (http/https) required" }, 400);
+  }
 
   const program = {
     id: id("prg"),
@@ -34,10 +42,37 @@ programs.post("/", async (c) => {
     name,
     slug: slugify(name),
     api_key: apiKey(),
+    destination_url: destination.toString(),
     created_at: Date.now(),
   };
   await createProgram(c.env.DB, program);
   return c.json({ program }, 201);
+});
+
+programs.patch("/:id", async (c) => {
+  const user = await requireUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.json<{ name?: string; destination_url?: string }>();
+  const updates: { name?: string; destination_url?: string | null } = {};
+
+  if (body.name !== undefined) {
+    const name = body.name.trim();
+    if (!name) return c.json({ error: "Program name cannot be empty" }, 400);
+    updates.name = name;
+  }
+
+  if (body.destination_url !== undefined) {
+    const destination = parseHttpUrl(body.destination_url.trim());
+    if (!destination) {
+      return c.json({ error: "Valid destination URL (http/https) required" }, 400);
+    }
+    updates.destination_url = destination.toString();
+  }
+
+  const program = await updateProgram(c.env.DB, c.req.param("id"), user.id, updates);
+  if (!program) return c.json({ error: "Not found" }, 404);
+  return c.json({ program });
 });
 
 programs.get("/:id", async (c) => {
@@ -77,6 +112,9 @@ programs.post("/:id/affiliates", async (c) => {
 
   const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
   if (!program) return c.json({ error: "Not found" }, 404);
+  if (!program.destination_url) {
+    return c.json({ error: "Set a program destination URL before creating affiliates" }, 400);
+  }
 
   const body = await c.req.json<{ name?: string }>();
   const name = body.name?.trim();
@@ -91,9 +129,7 @@ programs.post("/:id/affiliates", async (c) => {
   };
   await createAffiliate(c.env.DB, affiliate);
 
-  const appUrl = c.env.APP_URL.replace(/\/$/, "");
-  const trackingUrl = `${appUrl}/r/${affiliate.code}?url=https://example.com`;
-
+  const trackingUrl = buildTrackingUrl(c.env.APP_URL, affiliate.code);
   return c.json({ affiliate, tracking_url: trackingUrl }, 201);
 });
 

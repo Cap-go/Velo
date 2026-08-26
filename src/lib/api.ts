@@ -6,6 +6,7 @@ export type Program = {
   name: string;
   slug: string;
   api_key: string;
+  destination_url: string | null;
   created_at: number;
 };
 
@@ -66,10 +67,15 @@ export const api = {
     }),
   logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   programs: () => request<{ programs: Program[] }>("/api/programs"),
-  createProgram: (name: string) =>
+  createProgram: (name: string, destinationUrl: string) =>
     request<{ program: Program }>("/api/programs", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, destination_url: destinationUrl }),
+    }),
+  updateProgram: (programId: string, data: { name?: string; destination_url?: string }) =>
+    request<{ program: Program }>(`/api/programs/${programId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
     }),
   stats: (programId: string) => request<ProgramStats>(`/api/programs/${programId}/stats`),
   createAffiliate: (programId: string, name: string) =>

@@ -17,6 +17,7 @@ export type Program = {
   name: string;
   slug: string;
   api_key: string;
+  destination_url: string | null;
   created_at: number;
 };
 

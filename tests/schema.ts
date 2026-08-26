@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS programs (
   name TEXT NOT NULL,
   slug TEXT NOT NULL,
   api_key TEXT NOT NULL,
+  destination_url TEXT,
   created_at INTEGER NOT NULL
 );
 

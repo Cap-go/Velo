@@ -15,8 +15,10 @@ Routes:
 
 - `/` — marketing landing page
 - `/app` — merchant dashboard
-- `/r/:code?url=...` — affiliate redirect + click tracking
-- `/api/v1/convert` — conversion tracking (API key + cookie or affiliate code)
+- `/r/:code` — affiliate redirect to the program destination (+ optional same-host `?url=`)
+- `/api/v1/convert` — conversion tracking (`X-Program-Key` + `affiliate_code`)
+
+Each program stores a **destination URL**. Tracking links redirect there and append `velo_ref=<code>` so merchant checkout can attribute cross-domain conversions via `localStorage` (see `/api/v1/snippet`).
 
 ## Prerequisites
 
@@ -122,9 +124,10 @@ Example conversion request:
 curl -X POST https://YOUR_DOMAIN/api/v1/convert \
   -H "Content-Type: application/json" \
   -H "X-Program-Key: pk_..." \
-  -H "Cookie: _velo_ref=affiliate_code" \
-  -d '{"order_id":"order_123","amount":49}'
+  -d '{"order_id":"order_123","amount":49,"affiliate_code":"abc123"}'
 ```
+
+The hosted snippet at `/api/v1/snippet` reads `velo_ref` from the query string into `localStorage` and sends it as `affiliate_code`.
 
 ## Pricing (product)
 

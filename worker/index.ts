@@ -19,10 +19,11 @@ app.route("/api/programs", programs);
 app.route("/api/v1/convert", convert);
 app.route("/r", redirect);
 
+import { CONVERSION_SNIPPET } from "./lib/urls";
+
 app.get("/api/v1/snippet", (c) => {
   const appUrl = c.env.APP_URL.replace(/\/$/, "");
-  const snippet = `(function(){var k="YOUR_PROGRAM_KEY";fetch("${appUrl}/api/v1/convert",{method:"POST",headers:{"Content-Type":"application/json","X-Program-Key":k},credentials:"include",body:JSON.stringify({order_id:window.__VELO_ORDER_ID||"",amount:window.__VELO_AMOUNT||0})});})();`;
-  return c.text(snippet, 200, {
+  return c.text(CONVERSION_SNIPPET(appUrl), 200, {
     "Content-Type": "text/javascript; charset=utf-8",
   });
 });

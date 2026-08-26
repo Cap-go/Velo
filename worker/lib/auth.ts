@@ -3,10 +3,25 @@ import type { Env, User } from "../types";
 
 const COOKIE = "velo_session";
 const MAX_AGE = 60 * 60 * 24 * 30;
+const DEV_FALLBACK = "velo-dev-secret-change-in-production";
+
+function isLocalDev(env: Env): boolean {
+  try {
+    const host = new URL(env.APP_URL).hostname;
+    return host === "localhost" || host === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
+export function jwtSecret(env: Env): string {
+  if (env.JWT_SECRET) return env.JWT_SECRET;
+  if (isLocalDev(env)) return DEV_FALLBACK;
+  throw new Error("JWT_SECRET must be configured");
+}
 
 async function secret(env: Env): Promise<Uint8Array> {
-  const value = env.JWT_SECRET ?? "velo-dev-secret-change-in-production";
-  return new TextEncoder().encode(value);
+  return new TextEncoder().encode(jwtSecret(env));
 }
 
 export async function createSession(env: Env, user: User): Promise<string> {

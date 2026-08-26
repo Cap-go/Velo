@@ -1,8 +1,9 @@
 import { Hono } from "hono";
-import { getAffiliateByCode, recordClick } from "../db/queries";
+import { getAffiliateByCode, getProgramById, recordClick } from "../db/queries";
 import type { Env } from "../types";
 import { affiliateCookie, isSecureRequest } from "../lib/auth";
 import { id } from "../lib/utils";
+import { resolveRedirectTarget, withQueryParam } from "../lib/urls";
 
 const redirect = new Hono<{ Bindings: Env }>();
 
@@ -13,20 +14,23 @@ redirect.get("/:code", async (c) => {
     return c.text("Affiliate link not found", 404);
   }
 
+  const program = await getProgramById(c.env.DB, affiliate.program_id);
+  if (!program) {
+    return c.text("Program not found", 404);
+  }
+
+  const resolved = resolveRedirectTarget(program.destination_url, c.req.query("url"));
+  if (!resolved.ok) {
+    return c.text(resolved.error, resolved.status as 400 | 503);
+  }
+
   await recordClick(c.env.DB, {
     id: id("clk"),
     affiliate_id: affiliate.id,
     created_at: Date.now(),
   });
 
-  const destination = c.req.query("url") ?? "https://example.com";
-  let target: URL;
-  try {
-    target = new URL(destination);
-  } catch {
-    return c.text("Invalid destination URL", 400);
-  }
-
+  const target = withQueryParam(resolved.url, "velo_ref", affiliate.code);
   const secure = isSecureRequest(new URL(c.req.url));
   const headers = new Headers();
   headers.set("Location", target.toString());
