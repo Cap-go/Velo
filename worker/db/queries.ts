@@ -1,5 +1,8 @@
 import type { Affiliate, AffiliateStats, Program, ProgramStats } from "../types";
-import { conversionRate } from "../lib/utils";
+import { affiliateCode, conversionRate, id, isUniqueConstraintError } from "../lib/utils";
+
+const PROGRAM_COLUMNS =
+  "id, user_id, name, slug, api_key, destination_url, created_at";
 
 export async function getUserByEmail(
   db: D1Database,
@@ -11,10 +14,10 @@ export async function getUserByEmail(
     .first();
 }
 
-export async function getUserById(db: D1Database, id: string) {
+export async function getUserById(db: D1Database, userId: string) {
   return db
     .prepare("SELECT id, email, created_at FROM users WHERE id = ?")
-    .bind(id)
+    .bind(userId)
     .first<{ id: string; email: string; created_at: number }>();
 }
 
@@ -30,9 +33,7 @@ export async function createUser(
 
 export async function listPrograms(db: D1Database, userId: string): Promise<Program[]> {
   const { results } = await db
-    .prepare(
-      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE user_id = ? ORDER BY created_at DESC",
-    )
+    .prepare(`SELECT ${PROGRAM_COLUMNS} FROM programs WHERE user_id = ? ORDER BY created_at DESC`)
     .bind(userId)
     .all<Program>();
   return results ?? [];
@@ -40,35 +41,32 @@ export async function listPrograms(db: D1Database, userId: string): Promise<Prog
 
 export async function getProgram(db: D1Database, programId: string, userId: string) {
   return db
-    .prepare(
-      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE id = ? AND user_id = ?",
-    )
+    .prepare(`SELECT ${PROGRAM_COLUMNS} FROM programs WHERE id = ? AND user_id = ?`)
     .bind(programId, userId)
     .first<Program>();
 }
 
 export async function getProgramById(db: D1Database, programId: string) {
   return db
-    .prepare(
-      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE id = ?",
-    )
+    .prepare(`SELECT ${PROGRAM_COLUMNS} FROM programs WHERE id = ?`)
     .bind(programId)
     .first<Program>();
 }
 
-export async function getProgramByApiKey(db: D1Database, apiKey: string) {
+export async function getProgramByConvertSecret(db: D1Database, secret: string) {
   return db
-    .prepare(
-      "SELECT id, user_id, name, slug, api_key, destination_url, created_at FROM programs WHERE api_key = ?",
-    )
-    .bind(apiKey)
+    .prepare(`SELECT ${PROGRAM_COLUMNS} FROM programs WHERE convert_secret = ?`)
+    .bind(secret)
     .first<Program>();
 }
 
-export async function createProgram(db: D1Database, program: Program) {
+export async function createProgram(
+  db: D1Database,
+  program: Program & { convert_secret: string },
+) {
   await db
     .prepare(
-      "INSERT INTO programs (id, user_id, name, slug, api_key, destination_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO programs (id, user_id, name, slug, api_key, destination_url, convert_secret, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       program.id,
@@ -77,6 +75,7 @@ export async function createProgram(db: D1Database, program: Program) {
       program.slug,
       program.api_key,
       program.destination_url,
+      program.convert_secret,
       program.created_at,
     )
     .run();
@@ -109,7 +108,9 @@ export async function updateProgram(
 
 export async function listAffiliates(db: D1Database, programId: string): Promise<Affiliate[]> {
   const { results } = await db
-    .prepare("SELECT id, program_id, name, code, created_at FROM affiliates WHERE program_id = ? ORDER BY created_at DESC")
+    .prepare(
+      "SELECT id, program_id, name, code, created_at FROM affiliates WHERE program_id = ? ORDER BY created_at DESC",
+    )
     .bind(programId)
     .all<Affiliate>();
   return results ?? [];
@@ -129,7 +130,34 @@ export async function createAffiliate(db: D1Database, affiliate: Affiliate) {
     .run();
 }
 
-export async function recordClick(db: D1Database, click: { id: string; affiliate_id: string; created_at: number }) {
+export async function createAffiliateWithUniqueCode(
+  db: D1Database,
+  input: { program_id: string; name: string },
+  maxAttempts = 8,
+): Promise<Affiliate> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const affiliate: Affiliate = {
+      id: id("aff"),
+      program_id: input.program_id,
+      name: input.name,
+      code: affiliateCode(),
+      created_at: Date.now(),
+    };
+    try {
+      await createAffiliate(db, affiliate);
+      return affiliate;
+    } catch (error) {
+      if (isUniqueConstraintError(error)) continue;
+      throw error;
+    }
+  }
+  throw new Error("Could not generate unique affiliate code");
+}
+
+export async function recordClick(
+  db: D1Database,
+  click: { id: string; affiliate_id: string; created_at: number },
+) {
   await db
     .prepare("INSERT INTO clicks (id, affiliate_id, created_at) VALUES (?, ?, ?)")
     .bind(click.id, click.affiliate_id, click.created_at)
@@ -138,15 +166,23 @@ export async function recordClick(db: D1Database, click: { id: string; affiliate
 
 export async function recordConversion(
   db: D1Database,
-  conversion: { id: string; affiliate_id: string; order_id: string; amount_cents: number; created_at: number },
+  conversion: {
+    id: string;
+    program_id: string;
+    affiliate_id: string;
+    order_id: string;
+    amount_cents: number;
+    created_at: number;
+  },
 ): Promise<"created" | "duplicate"> {
   try {
     await db
       .prepare(
-        "INSERT INTO conversions (id, affiliate_id, order_id, amount_cents, created_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO conversions (id, program_id, affiliate_id, order_id, amount_cents, created_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
       .bind(
         conversion.id,
+        conversion.program_id,
         conversion.affiliate_id,
         conversion.order_id,
         conversion.amount_cents,
@@ -155,7 +191,7 @@ export async function recordConversion(
       .run();
     return "created";
   } catch (error) {
-    if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+    if (isUniqueConstraintError(error)) {
       return "duplicate";
     }
     throw error;

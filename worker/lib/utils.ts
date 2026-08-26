@@ -24,6 +24,15 @@ export function affiliateCode(): string {
   return [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
 }
 
+export function convertSecret(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return `sk_${[...bytes].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+export function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("UNIQUE constraint failed");
+}
+
 export function conversionRate(conversions: number, clicks: number): number {
   if (clicks === 0) return 0;
   return Math.round((conversions / clicks) * 10000) / 100;

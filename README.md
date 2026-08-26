@@ -18,7 +18,7 @@ Routes:
 - `/` — marketing landing page
 - `/app` — merchant dashboard
 - `/r/:code` — affiliate redirect to the program destination (+ optional same-host `?url=`)
-- `/api/v1/convert` — conversion tracking (`X-Program-Key` + `affiliate_code`)
+- `/api/v1/convert` — conversion tracking (`X-Program-Secret` + `affiliate_code`, server-side)
 
 Each program stores a **destination URL**. Tracking links redirect there and append `velo_ref=<code>` so merchant checkout can attribute cross-domain conversions via `localStorage` (see `/api/v1/snippet`).
 
@@ -95,13 +95,14 @@ Add these repository secrets for `.github/workflows/deploy.yml`:
 
 ### 3. Deploy
 
-Pushes to `main` run CI then deploy via GitHub Actions.
+Merging to `main` runs CI first; deploy runs only after CI succeeds on that commit.
 
 Manual deploy:
 
 ```bash
 bun run build
-bunx wrangler deploy --env production
+bunx wrangler d1 migrations apply velo-db --remote
+bun run deploy   # or: bunx wrangler deploy --env production --var APP_URL:https://velo.capgo.app
 ```
 
 Set production vars/secrets:
@@ -118,18 +119,18 @@ Update `APP_URL` in `wrangler.toml` under `[env.production.vars]` to your produc
 2. Create a program in `/app`
 3. Add an affiliate and copy the generated `/r/{code}?url=...` link
 4. Share the link — clicks are tracked and a first-party cookie is set
-5. On conversion, call `/api/v1/convert` with `X-Program-Key` and `{ order_id, amount }`
+5. On conversion, POST from your **server** to `/api/v1/convert` with `X-Program-Secret` and `{ order_id, amount, affiliate_code }`
 
-Example conversion request:
+Example server-side conversion request:
 
 ```bash
 curl -X POST https://YOUR_DOMAIN/api/v1/convert \
   -H "Content-Type: application/json" \
-  -H "X-Program-Key: pk_..." \
+  -H "X-Program-Secret: sk_..." \
   -d '{"order_id":"order_123","amount":49,"affiliate_code":"abc123"}'
 ```
 
-The hosted snippet at `/api/v1/snippet` reads `velo_ref` from the query string into `localStorage` and sends it as `affiliate_code`.
+The browser snippet at `/api/v1/snippet` only stores `velo_ref` from the query string into `localStorage`.
 
 ## Pricing (product)
 

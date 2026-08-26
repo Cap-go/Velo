@@ -55,5 +55,24 @@ export function buildTrackingUrl(appUrl: string, affiliateCode: string): string 
   return `${appUrl.replace(/\/$/, "")}/r/${affiliateCode}`;
 }
 
-export const CONVERSION_SNIPPET = (appUrl: string) =>
-  `(function(){var k="YOUR_PROGRAM_KEY",b="${appUrl}/api/v1/convert",q=new URLSearchParams(location.search).get("velo_ref");if(q){try{localStorage.setItem("velo_ref",q)}catch(e){}}var r="";try{r=localStorage.getItem("velo_ref")||""}catch(e){}fetch(b,{method:"POST",headers:{"Content-Type":"application/json","X-Program-Key":k},body:JSON.stringify({order_id:window.__VELO_ORDER_ID||"",amount:window.__VELO_AMOUNT||0,affiliate_code:r})})})();`;
+/** Browser-safe: stores velo_ref from the landing URL into localStorage only. */
+export const ATTRIBUTION_SNIPPET =
+  `(function(){var q=new URLSearchParams(location.search).get("velo_ref");if(q){try{localStorage.setItem("velo_ref",q)}catch(e){}}})();`;
+
+export function serverConvertExample(appUrl: string): string {
+  return `// Server-side only — never expose X-Program-Secret in browser JS
+const affiliateCode = req.body.affiliate_code; // e.g. from checkout form
+
+await fetch("${appUrl}/api/v1/convert", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Program-Secret": process.env.VELO_CONVERT_SECRET
+  },
+  body: JSON.stringify({
+    order_id: "order_123",
+    amount: 49,
+    affiliate_code: affiliateCode
+  })
+});`;
+}

@@ -19,11 +19,10 @@ app.route("/api/programs", programs);
 app.route("/api/v1/convert", convert);
 app.route("/r", redirect);
 
-import { CONVERSION_SNIPPET } from "./lib/urls";
+import { ATTRIBUTION_SNIPPET } from "./lib/urls";
 
 app.get("/api/v1/snippet", (c) => {
-  const appUrl = c.env.APP_URL.replace(/\/$/, "");
-  return c.text(CONVERSION_SNIPPET(appUrl), 200, {
+  return c.text(ATTRIBUTION_SNIPPET, 200, {
     "Content-Type": "text/javascript; charset=utf-8",
   });
 });

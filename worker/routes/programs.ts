@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import {
-  createAffiliate,
+  createAffiliateWithUniqueCode,
   createProgram,
   getProgram,
   getProgramStats,
@@ -9,7 +9,7 @@ import {
   updateProgram,
 } from "../db/queries";
 import type { Env } from "../types";
-import { affiliateCode, apiKey, id, slugify } from "../lib/utils";
+import { apiKey, convertSecret, id, slugify } from "../lib/utils";
 import { buildTrackingUrl, parseHttpUrl } from "../lib/urls";
 import { requireUser } from "./auth";
 
@@ -36,6 +36,7 @@ programs.post("/", async (c) => {
     return c.json({ error: "Valid destination URL (http/https) required" }, 400);
   }
 
+  const secret = convertSecret();
   const program = {
     id: id("prg"),
     user_id: user.id,
@@ -43,10 +44,12 @@ programs.post("/", async (c) => {
     slug: slugify(name),
     api_key: apiKey(),
     destination_url: destination.toString(),
+    convert_secret: secret,
     created_at: Date.now(),
   };
   await createProgram(c.env.DB, program);
-  return c.json({ program }, 201);
+  const { convert_secret: _secret, ...publicProgram } = program;
+  return c.json({ program: publicProgram, convert_secret: secret }, 201);
 });
 
 programs.patch("/:id", async (c) => {
@@ -120,14 +123,10 @@ programs.post("/:id/affiliates", async (c) => {
   const name = body.name?.trim();
   if (!name) return c.json({ error: "Affiliate name required" }, 400);
 
-  const affiliate = {
-    id: id("aff"),
+  const affiliate = await createAffiliateWithUniqueCode(c.env.DB, {
     program_id: program.id,
     name,
-    code: affiliateCode(),
-    created_at: Date.now(),
-  };
-  await createAffiliate(c.env.DB, affiliate);
+  });
 
   const trackingUrl = buildTrackingUrl(c.env.APP_URL, affiliate.code);
   return c.json({ affiliate, tracking_url: trackingUrl }, 201);

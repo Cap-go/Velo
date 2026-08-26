@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS programs (
   slug TEXT NOT NULL,
   api_key TEXT NOT NULL,
   destination_url TEXT,
+  convert_secret TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -22,9 +23,8 @@ CREATE TABLE IF NOT EXISTS affiliates (
   id TEXT PRIMARY KEY,
   program_id TEXT NOT NULL REFERENCES programs(id),
   name TEXT NOT NULL,
-  code TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  UNIQUE(program_id, code)
+  code TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_affiliates_program ON affiliates(program_id);
@@ -40,12 +40,14 @@ CREATE INDEX IF NOT EXISTS idx_clicks_affiliate ON clicks(affiliate_id);
 
 CREATE TABLE IF NOT EXISTS conversions (
   id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES programs(id),
   affiliate_id TEXT NOT NULL REFERENCES affiliates(id),
   order_id TEXT NOT NULL,
   amount_cents INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
-  UNIQUE(affiliate_id, order_id)
+  UNIQUE(program_id, order_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversions_affiliate ON conversions(affiliate_id);
+CREATE INDEX IF NOT EXISTS idx_conversions_program ON conversions(program_id);
 `;

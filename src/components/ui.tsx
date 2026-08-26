@@ -1,11 +1,12 @@
+import type { InputHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 export function Shell({
   children,
   cta,
 }: {
-  children: React.ReactNode;
-  cta?: React.ReactNode;
+  children: ReactNode;
+  cta?: ReactNode;
 }) {
   return (
     <div className="min-h-screen">
@@ -23,7 +24,7 @@ export function Shell({
 export function Field({
   label,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
     <label className="block space-y-2">
       <span className="text-sm font-medium text-[var(--velo-muted)]">{label}</span>
@@ -35,7 +36,10 @@ export function Field({
 export function ErrorBox({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <div
+      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
       {message}
     </div>
   );

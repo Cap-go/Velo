@@ -47,11 +47,20 @@ async function signupAndCreateProgram(email: string) {
     }),
   });
   expect(programRes.status).toBe(201);
-  const { program } = await json<{
-    program: { id: string; api_key: string; destination_url: string };
+  const { program, convert_secret } = await json<{
+    program: { id: string; destination_url: string };
+    convert_secret: string;
   }>(programRes);
+  expect(convert_secret).toMatch(/^sk_/);
 
-  return { session: session!, authHeaders, program };
+  return { session: session!, authHeaders, program, convert_secret };
+}
+
+function convertHeaders(secret: string) {
+  return {
+    "Content-Type": "application/json",
+    "X-Program-Secret": secret,
+  };
 }
 
 describe("affiliate tracking flow", () => {
@@ -73,9 +82,8 @@ describe("affiliate tracking flow", () => {
   });
 
   it("signup → program → affiliate → click → convert → stats", async () => {
-    const { session, authHeaders, program } = await signupAndCreateProgram(
-      "founder@example.com",
-    );
+    const { session, authHeaders, program, convert_secret } =
+      await signupAndCreateProgram("founder@example.com");
 
     const affiliateRes = await SELF.fetch(
       `http://localhost/api/programs/${program.id}/affiliates`,
@@ -106,10 +114,7 @@ describe("affiliate tracking flow", () => {
 
     const convertRes = await SELF.fetch("http://localhost/api/v1/convert", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Program-Key": program.api_key,
-      },
+      headers: convertHeaders(convert_secret),
       body: JSON.stringify({
         order_id: "order_001",
         amount: 99.5,
@@ -123,10 +128,7 @@ describe("affiliate tracking flow", () => {
 
     const duplicateRes = await SELF.fetch("http://localhost/api/v1/convert", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Program-Key": program.api_key,
-      },
+      headers: convertHeaders(convert_secret),
       body: JSON.stringify({
         order_id: "order_001",
         amount: 99.5,
@@ -158,6 +160,50 @@ describe("affiliate tracking flow", () => {
     expect(stats.affiliates[0]?.code).toBe(affiliate.code);
     expect(stats.affiliates[0]?.clicks).toBe(1);
     expect(stats.affiliates[0]?.conversions).toBe(1);
+  });
+
+  it("dedupes conversions by program and order id across affiliates", async () => {
+    const { authHeaders, program, convert_secret } =
+      await signupAndCreateProgram("dedupe@example.com");
+
+    const firstAffiliate = await json<{ affiliate: { code: string } }>(
+      await SELF.fetch(`http://localhost/api/programs/${program.id}/affiliates`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ name: "Affiliate A" }),
+      }),
+    );
+    const secondAffiliate = await json<{ affiliate: { code: string } }>(
+      await SELF.fetch(`http://localhost/api/programs/${program.id}/affiliates`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ name: "Affiliate B" }),
+      }),
+    );
+
+    const firstConvert = await SELF.fetch("http://localhost/api/v1/convert", {
+      method: "POST",
+      headers: convertHeaders(convert_secret),
+      body: JSON.stringify({
+        order_id: "order_shared",
+        amount: 40,
+        affiliate_code: firstAffiliate.affiliate.code,
+      }),
+    });
+    expect(firstConvert.status).toBe(200);
+    expect((await json<{ status: string }>(firstConvert)).status).toBe("created");
+
+    const secondConvert = await SELF.fetch("http://localhost/api/v1/convert", {
+      method: "POST",
+      headers: convertHeaders(convert_secret),
+      body: JSON.stringify({
+        order_id: "order_shared",
+        amount: 40,
+        affiliate_code: secondAffiliate.affiliate.code,
+      }),
+    });
+    expect(secondConvert.status).toBe(200);
+    expect((await json<{ status: string }>(secondConvert)).status).toBe("duplicate");
   });
 
   it("rejects off-host redirect overrides", async () => {
@@ -219,7 +265,7 @@ describe("affiliate tracking flow", () => {
       headers: {
         Origin: "https://merchant.example.com",
         "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "content-type,x-program-key",
+        "Access-Control-Request-Headers": "content-type,x-program-secret",
       },
     });
 

@@ -68,7 +68,7 @@ export const api = {
   logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   programs: () => request<{ programs: Program[] }>("/api/programs"),
   createProgram: (name: string, destinationUrl: string) =>
-    request<{ program: Program }>("/api/programs", {
+    request<{ program: Program; convert_secret: string }>("/api/programs", {
       method: "POST",
       body: JSON.stringify({ name, destination_url: destinationUrl }),
     }),

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import {
   getAffiliateByCode,
-  getProgramByApiKey,
+  getProgramByConvertSecret,
   recordConversion,
 } from "../db/queries";
 import type { Env } from "../types";
@@ -16,20 +16,20 @@ convert.use(
   cors({
     origin: "*",
     allowMethods: ["POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "X-Program-Key"],
+    allowHeaders: ["Content-Type", "X-Program-Secret"],
     maxAge: 86400,
   }),
 );
 
 convert.post("/", async (c) => {
-  const apiKey = c.req.header("X-Program-Key");
-  if (!apiKey) {
-    return c.json({ error: "X-Program-Key header required" }, 401);
+  const secret = c.req.header("X-Program-Secret");
+  if (!secret) {
+    return c.json({ error: "X-Program-Secret header required" }, 401);
   }
 
-  const program = await getProgramByApiKey(c.env.DB, apiKey);
+  const program = await getProgramByConvertSecret(c.env.DB, secret);
   if (!program) {
-    return c.json({ error: "Invalid program key" }, 401);
+    return c.json({ error: "Invalid program secret" }, 401);
   }
 
   const body = await c.req.json<{
@@ -60,6 +60,7 @@ convert.post("/", async (c) => {
   const amountCents = Math.round(amount * 100);
   const status = await recordConversion(c.env.DB, {
     id: id("cnv"),
+    program_id: program.id,
     affiliate_id: affiliate.id,
     order_id: orderId,
     amount_cents: amountCents,

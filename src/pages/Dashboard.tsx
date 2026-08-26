@@ -21,6 +21,7 @@ export function DashboardPage() {
   const [editDestinationUrl, setEditDestinationUrl] = useState("");
   const [affiliateName, setAffiliateName] = useState("");
   const [lastLink, setLastLink] = useState("");
+  const [convertSecretOnce, setConvertSecretOnce] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -40,10 +41,24 @@ export function DashboardPage() {
       setStats(null);
       return;
     }
+
+    let cancelled = false;
+    setStats(null);
+
     api
       .stats(selectedId)
-      .then(setStats)
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load stats"));
+      .then((data) => {
+        if (!cancelled) setStats(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load stats");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedId, lastLink]);
 
   useEffect(() => {
@@ -66,9 +81,10 @@ export function DashboardPage() {
     setBusy(true);
     setError("");
     try {
-      const { program } = await api.createProgram(programName, destinationUrl);
+      const { program, convert_secret } = await api.createProgram(programName, destinationUrl);
       setPrograms((prev) => [program, ...prev]);
       setSelectedId(program.id);
+      setConvertSecretOnce(convert_secret);
       setProgramName("");
       setDestinationUrl("");
     } catch (err) {
@@ -120,6 +136,7 @@ export function DashboardPage() {
   }
 
   const selectedProgram = programs.find((p) => p.id === selectedId) ?? stats?.program;
+  const visibleStats = stats && stats.program.id === selectedId ? stats : null;
 
   return (
     <Shell
@@ -192,6 +209,16 @@ export function DashboardPage() {
               <>
                 <div className="card p-5">
                   <h2 className="font-semibold">Program details</h2>
+                  {convertSecretOnce && selectedProgram.id === selectedId && (
+                    <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                      <p className="text-sm font-semibold text-amber-900">
+                        Conversion secret (shown once — store server-side)
+                      </p>
+                      <p className="mono mt-2 break-all text-sm text-amber-950">
+                        {convertSecretOnce}
+                      </p>
+                    </div>
+                  )}
                   <form className="mt-4 space-y-3" onSubmit={saveDestination}>
                     <Field
                       label="Destination URL"
@@ -210,28 +237,29 @@ export function DashboardPage() {
                     <span className="mono">velo_ref</span> for merchant-site attribution.
                   </p>
                   <p className="mt-4 text-sm text-[var(--velo-muted)]">
-                    Use this API key in your conversion snippet or server-side POST.
+                    Record conversions from your server with{" "}
+                    <span className="mono">X-Program-Secret</span> (never in browser JS).
                   </p>
-                  <div className="mono mt-3 break-all rounded-xl bg-[var(--velo-bg)] p-3">
-                    {selectedProgram.api_key}
-                  </div>
                   <pre className="mono mt-4 overflow-x-auto rounded-xl bg-[var(--velo-bg)] p-3 text-xs leading-relaxed">
-                    {`var ref = localStorage.getItem("velo_ref") || "";
-fetch("${window.location.origin}/api/v1/convert", {
+                    {`// Server-side checkout handler
+const affiliateCode = req.body.affiliate_code; // from form / localStorage
+
+await fetch("${window.location.origin}/api/v1/convert", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "X-Program-Key": "${selectedProgram.api_key}"
+    "X-Program-Secret": process.env.VELO_CONVERT_SECRET
   },
   body: JSON.stringify({
     order_id: "order_123",
     amount: 49,
-    affiliate_code: ref
+    affiliate_code: affiliateCode
   })
 });`}
                   </pre>
                   <p className="mt-3 text-sm text-[var(--velo-muted)]">
-                    Install snippet:{" "}
+                    Browser attribution snippet (stores <span className="mono">velo_ref</span>{" "}
+                    only):{" "}
                     <span className="mono">{`${window.location.origin}/api/v1/snippet`}</span>
                   </p>
                 </div>
@@ -266,35 +294,37 @@ fetch("${window.location.origin}/api/v1/convert", {
                   )}
                 </div>
 
-                {stats && (
+                {visibleStats && (
                   <>
                     <div className="stat-grid">
                       <div className="card stat">
                         <div className="stat-label">Clicks</div>
-                        <div className="stat-value">{stats.totals.clicks}</div>
+                        <div className="stat-value">{visibleStats.totals.clicks}</div>
                       </div>
                       <div className="card stat">
                         <div className="stat-label">Conversions</div>
-                        <div className="stat-value">{stats.totals.conversions}</div>
+                        <div className="stat-value">{visibleStats.totals.conversions}</div>
                       </div>
                       <div className="card stat">
                         <div className="stat-label">Revenue</div>
                         <div className="stat-value">
-                          {formatMoney(stats.totals.revenue_cents)}
+                          {formatMoney(visibleStats.totals.revenue_cents)}
                         </div>
                       </div>
                       <div className="card stat">
                         <div className="stat-label">Conversion rate</div>
                         <div className="stat-value">
-                          {formatPercent(stats.totals.conversion_rate)}
+                          {formatPercent(visibleStats.totals.conversion_rate)}
                         </div>
                       </div>
                     </div>
 
                     <div className="card overflow-hidden p-5">
-                      <h2 className="font-semibold">Affiliates</h2>
+                      <h2 id="affiliates-heading" className="font-semibold">
+                        Affiliates
+                      </h2>
                       <div className="mt-4 overflow-x-auto">
-                        <table className="table">
+                        <table className="table" aria-labelledby="affiliates-heading">
                           <thead>
                             <tr>
                               <th>Name</th>
@@ -306,14 +336,14 @@ fetch("${window.location.origin}/api/v1/convert", {
                             </tr>
                           </thead>
                           <tbody>
-                            {stats.affiliates.length === 0 && (
+                            {visibleStats.affiliates.length === 0 && (
                               <tr>
                                 <td colSpan={6} className="text-[var(--velo-muted)]">
                                   No affiliates yet.
                                 </td>
                               </tr>
                             )}
-                            {stats.affiliates.map((affiliate) => (
+                            {visibleStats.affiliates.map((affiliate) => (
                               <AffiliateRow key={affiliate.id} affiliate={affiliate} />
                             ))}
                           </tbody>

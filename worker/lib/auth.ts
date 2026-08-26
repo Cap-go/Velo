@@ -85,7 +85,12 @@ export function affiliateCookie(code: string, secure: boolean): string {
 export function readAffiliateCookie(cookieHeader: string | null): string | null {
   if (!cookieHeader) return null;
   const raw = parseCookie(cookieHeader)[REF_COOKIE];
-  return raw ? decodeURIComponent(raw) : null;
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
 }
 
 function parseCookie(header: string): Record<string, string> {

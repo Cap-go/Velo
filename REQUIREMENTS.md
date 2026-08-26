@@ -23,9 +23,9 @@ An affiliate shares a short link. A click records the visit and sends the visito
 | Program + destination URL | `POST /api/programs` (required `destination_url`), `PATCH /api/programs/:id` |
 | Affiliates + unique links | `POST /api/programs/:id/affiliates` → `/r/:code` |
 | Redirect | `/r/:code` → program destination; optional `?url=` **same host only**; append `velo_ref=<code>` on Location |
-| Conversions | `POST /api/v1/convert` with `X-Program-Key` + `affiliate_code`; idempotent by `order_id` |
+| Conversions | `POST /api/v1/convert` with `X-Program-Secret` + `affiliate_code`; idempotent by `(program_id, order_id)` |
 | CORS | `POST` + `OPTIONS` on `/api/v1/convert`, `Access-Control-Allow-Origin: *` |
-| Merchant snippet | `GET /api/v1/snippet` — reads `velo_ref` from query → `localStorage` → `affiliate_code` in POST |
+| Merchant snippet | `GET /api/v1/snippet` — browser-only: stores `velo_ref` in `localStorage` (conversions are server-side) |
 | Dashboard stats | `/app` + `GET /api/programs/:id/stats` |
 
 ### Site structure
@@ -46,7 +46,7 @@ Must pass in CI:
 ### CI / deploy
 
 - **CI** (`.github/workflows/ci.yml`): on PRs and `main` — typecheck, test, build
-- **Deploy** (`.github/workflows/deploy.yml`): on push to `main` only — build, D1 migrations, `wrangler deploy`
+- **Deploy** (`.github/workflows/deploy.yml`): runs only after **CI succeeds** on a push to `main` (`workflow_run`) — build, D1 migrations, `wrangler deploy`
 
 **Cloudflare target**
 
