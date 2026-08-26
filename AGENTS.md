@@ -42,9 +42,9 @@ Prerequisites are in REQUIREMENTS.md. Steps:
 6. In Cloudflare dashboard: attach route/custom domain **`velo.capgo.app`** to worker **`velo`**
 7. Smoke test:
    - `/` loads landing
-   - Signup → create program with destination URL → add affiliate
+   - Signup → create program (save **convert secret** shown once) → add affiliate
    - Open `/r/:code` → lands on merchant URL with `velo_ref=`
-   - POST convert with `X-Program-Key` + `affiliate_code` → stats update
+   - POST convert from server with `X-Program-Secret` + `affiliate_code` → stats update
 
 Manual deploy (if needed):
 
@@ -59,7 +59,7 @@ bun run deploy   # or: bunx wrangler deploy --env production --var APP_URL:https
 - Match existing patterns; minimal diff
 - Do not add Stripe, payouts, social login, or Affonso integration unless asked
 - Keep redirect allowlist logic — never redirect to arbitrary hosts
-- Conversions: `affiliate_code` + `X-Program-Key`; CORS on convert; no reliance on cross-site cookies
+- Conversions: `affiliate_code` + `X-Program-Secret` (server-only); CORS on convert; no reliance on cross-site cookies
 - `JWT_SECRET` must fail closed when `APP_URL` is not localhost (see `worker/lib/auth.ts`)
 - Run `bun run test` and keep CI green
 - Use version tags for GitHub Actions, not SHA pins
