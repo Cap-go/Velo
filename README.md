@@ -2,6 +2,8 @@
 
 Simple self-serve affiliate tracking for indie and SaaS founders.
 
+**Requirements & agent guide:** [REQUIREMENTS.md](./REQUIREMENTS.md) · [AGENTS.md](./AGENTS.md)
+
 Velo lets merchants create affiliate programs, give partners unique tracking links, record click-throughs with first-party cookies, and attribute conversions via a JS snippet or POST API.
 
 ## Stack
