@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "deploy": "bun run build && wrangler deploy --env production --var APP_URL:https://velo.capgo.app",
+    "deploy": "bun run build && wrangler deploy --env production",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

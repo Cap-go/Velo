@@ -55,6 +55,19 @@ export function buildTrackingUrl(appUrl: string, affiliateCode: string): string 
   return `${appUrl.replace(/\/$/, "")}/r/${affiliateCode}`;
 }
 
+/** Local dev uses APP_URL (port); production uses the incoming request origin. */
+export function resolveAppBaseUrl(reqUrl: string, appUrl: string): string {
+  try {
+    const host = new URL(appUrl).hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return appUrl.replace(/\/$/, "");
+    }
+  } catch {
+    /* fall through */
+  }
+  return new URL(reqUrl).origin;
+}
+
 /** Browser-safe: stores velo_ref from the landing URL into localStorage only. */
 export const ATTRIBUTION_SNIPPET =
   `(function(){var q=new URLSearchParams(location.search).get("velo_ref");if(q){try{localStorage.setItem("velo_ref",q)}catch(e){}}})();`;

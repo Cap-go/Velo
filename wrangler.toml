@@ -18,7 +18,8 @@ migrations_dir = "migrations"
 APP_URL = "http://localhost:5173"
 
 [env.production]
-vars = { APP_URL = "https://velo.capgo.app" }
+# Placeholder until first deploy; live host is https://velo.<account-subdomain>.workers.dev
+vars = { APP_URL = "https://velo.workers.dev" }
 
 [[env.production.d1_databases]]
 binding = "DB"

@@ -56,7 +56,7 @@ Must pass in CI:
 | D1 database | `velo-db` (already created) |
 | D1 database ID | `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
 | Account | Digital shift — `9ee3d7479a3c359681e3fab2c8cb22c0` |
-| Production URL | `https://velo.capgo.app` |
+| Production URL | `https://velo.<account-subdomain>.workers.dev` (default Workers host; from `wrangler deploy` output) |
 
 **GitHub secrets**
 
@@ -68,7 +68,7 @@ Must pass in CI:
 
 The deploy workflow uses `${{ secrets.CLOUDFLARE_* }}` and `${{ secrets.JWT_SECRET }}`. Org-level Cloudflare secrets are inherited; only `JWT_SECRET` is repo-specific.
 
-Attach custom domain **`velo.capgo.app`** to worker **`velo`** in Cloudflare if not already routed.
+Do **not** attach a custom domain — production runs on the Worker’s `*.workers.dev` hostname only.
 
 ## Out of scope (MVP)
 

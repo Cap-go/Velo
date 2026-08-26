@@ -65,7 +65,7 @@ Coverage:
 
 ## Production deploy (Cloudflare)
 
-Production URL: **https://velo.capgo.app**
+Production URL: the Worker’s default **`*.workers.dev`** host for worker name **`velo`** (printed by `wrangler deploy`, typically `https://velo.<account-subdomain>.workers.dev`). Do **not** attach a custom domain.
 
 ### 1. D1 database
 
@@ -96,10 +96,8 @@ Manual deploy:
 ```bash
 bun run build
 bunx wrangler d1 migrations apply velo-db --remote
-bun run deploy   # deploys to https://velo.capgo.app
+bun run deploy   # note the https://velo.<account-subdomain>.workers.dev URL in output
 ```
-
-Attach custom domain **`velo.capgo.app`** to worker **`velo`** in the Cloudflare dashboard if not already routed.
 
 ## Merchant flow
 

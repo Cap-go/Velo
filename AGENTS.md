@@ -37,8 +37,8 @@ Prerequisites are in REQUIREMENTS.md. Steps:
 1. **Secrets:** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` come from Cap-go **org** secrets (already set). `JWT_SECRET` is on the **Cap-go/Velo** repo (already set).
 2. **D1:** `velo-db` already exists — id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` on account `9ee3d7479a3c359681e3fab2c8cb22c0` (see `wrangler.toml`).
 3. Merge PR to `main` (only when CI green and review approved).
-4. Deploy workflow runs after CI passes: migrations → `wrangler deploy --env production --var APP_URL:https://velo.capgo.app`
-5. Confirm custom domain **`velo.capgo.app`** routes to worker **`velo`**
+4. Deploy workflow runs after CI passes: migrations → `wrangler deploy --env production`
+5. Note the live URL from deploy output (`https://velo.<account-subdomain>.workers.dev`) — no custom domain
 6. Smoke test:
    - `/` loads landing
    - Signup → create program (save **convert secret** shown once) → add affiliate
@@ -50,7 +50,7 @@ Manual deploy (if needed):
 ```bash
 bun run build
 bunx wrangler d1 migrations apply velo-db --remote
-bun run deploy   # or: bunx wrangler deploy --env production --var APP_URL:https://velo.capgo.app
+bun run deploy   # or: bunx wrangler deploy --env production
 ```
 
 ## Rules when changing code
