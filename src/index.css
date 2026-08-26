@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --velo-bg: #faf9f7;
+  --velo-ink: #111827;
+  --velo-muted: #6b7280;
+  --velo-accent: #0f766e;
+  --velo-accent-soft: #ccfbf1;
+  --velo-border: #e5e7eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family:
+    "IBM Plex Sans",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: var(--velo-bg);
+  color: var(--velo-ink);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--velo-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.65rem 1.1rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--velo-accent);
+  color: white;
+}
+
+.btn-secondary {
+  background: white;
+  border-color: var(--velo-border);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--velo-muted);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--velo-border);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: white;
+}
+
+.input:focus {
+  outline: 2px solid var(--velo-accent-soft);
+  border-color: var(--velo-accent);
+}
+
+.stat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.stat {
+  padding: 1rem 1.1rem;
+}
+
+.stat-label {
+  color: var(--velo-muted);
+  font-size: 0.85rem;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--velo-border);
+  font-size: 0.95rem;
+}
+
+.table th {
+  color: var(--velo-muted);
+  font-weight: 600;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+}
