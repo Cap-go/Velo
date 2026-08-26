@@ -20,6 +20,14 @@ APP_URL = "http://localhost:5173"
 [env.production]
 vars = { APP_URL = "https://capve.app" }
 
+[[env.production.routes]]
+pattern = "capve.app"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "www.capve.app"
+custom_domain = true
+
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "velo-db"
