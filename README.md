@@ -65,19 +65,13 @@ Coverage:
 
 ## Production deploy (Cloudflare)
 
-### 1. Cloudflare D1 database
+Production URL: **https://velo.capgo.app**
 
-This repo is wired to a D1 database named `velo-db`. The `database_id` in `wrangler.toml` must match a database in your Cloudflare account.
+### 1. D1 database
 
-If you need a fresh database:
+D1 **`velo-db`** already exists on the Digital shift account (`9ee3d7479a3c359681e3fab2c8cb22c0`). This repo is wired to database id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` in `wrangler.toml`.
 
-```bash
-bunx wrangler d1 create velo-db
-```
-
-Update `database_id` in `wrangler.toml` (both default and `[env.production]` sections) with the ID from that command.
-
-Apply migrations remotely:
+Migrations run automatically on deploy. To apply manually:
 
 ```bash
 bunx wrangler d1 migrations apply velo-db --remote
@@ -85,13 +79,13 @@ bunx wrangler d1 migrations apply velo-db --remote
 
 ### 2. GitHub secrets
 
-Add these repository secrets for `.github/workflows/deploy.yml`:
+| Secret | Where | Status |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
+| `JWT_SECRET` | **Cap-go/Velo** repo secret | Set — session signing for production auth |
 
-| Secret | Purpose |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Workers + D1 permissions |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
-| `JWT_SECRET` | Session signing secret for production auth |
+The deploy workflow reads these via `${{ secrets.* }}`; org secrets are inherited automatically. **Do not duplicate Cloudflare secrets on the Velo repo.**
 
 ### 3. Deploy
 
@@ -102,16 +96,10 @@ Manual deploy:
 ```bash
 bun run build
 bunx wrangler d1 migrations apply velo-db --remote
-bun run deploy   # or: bunx wrangler deploy --env production --var APP_URL:https://velo.capgo.app
+bun run deploy   # deploys to https://velo.capgo.app
 ```
 
-Set production vars/secrets:
-
-```bash
-bunx wrangler secret put JWT_SECRET --env production
-```
-
-Update `APP_URL` in `wrangler.toml` under `[env.production.vars]` to your production domain.
+Attach custom domain **`velo.capgo.app`** to worker **`velo`** in the Cloudflare dashboard if not already routed.
 
 ## Merchant flow
 

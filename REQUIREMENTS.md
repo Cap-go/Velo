@@ -53,26 +53,22 @@ Must pass in CI:
 | Resource | Value |
 | --- | --- |
 | Worker name | `velo` |
-| D1 database | `velo-db` |
+| D1 database | `velo-db` (already created) |
 | D1 database ID | `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
 | Account | Digital shift — `9ee3d7479a3c359681e3fab2c8cb22c0` |
 | Production URL | `https://velo.capgo.app` |
 
-**GitHub secrets (required before first prod deploy)**
+**GitHub secrets**
 
-| Secret | Purpose |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Deploy worker + apply D1 migrations |
-| `CLOUDFLARE_ACCOUNT_ID` | `9ee3d7479a3c359681e3fab2c8cb22c0` |
-| `JWT_SECRET` | Session signing; **must be set in production** (auth fails closed without it) |
+| Secret | Where | Status |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
+| `JWT_SECRET` | **Cap-go/Velo** repo secret | Set — auth fails closed without it in production |
 
-Also set Worker secret if not wired by CI:
+The deploy workflow uses `${{ secrets.CLOUDFLARE_* }}` and `${{ secrets.JWT_SECRET }}`. Org-level Cloudflare secrets are inherited; only `JWT_SECRET` is repo-specific.
 
-```bash
-bunx wrangler secret put JWT_SECRET --env production
-```
-
-Attach custom domain `velo.capgo.app` in Cloudflare dashboard after first deploy.
+Attach custom domain **`velo.capgo.app`** to worker **`velo`** in Cloudflare if not already routed.
 
 ## Out of scope (MVP)
 

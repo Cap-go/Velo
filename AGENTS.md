@@ -34,13 +34,12 @@ Optional `.dev.vars`: `JWT_SECRET=...` (local only; gitignored)
 
 Prerequisites are in REQUIREMENTS.md. Steps:
 
-1. Confirm GitHub secrets exist: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `JWT_SECRET`
-2. Confirm D1 binding in `wrangler.toml` matches account `9ee3d7479a3c359681e3fab2c8cb22c0`, DB id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d`
-3. Merge PR to `main` (only when CI green and review approved)
-4. Deploy workflow runs: migrations → `wrangler deploy --env production --var APP_URL:https://velo.capgo.app`
-5. Ensure `JWT_SECRET` is available to the Worker (GitHub secret + `wrangler secret put` if needed)
-6. In Cloudflare dashboard: attach route/custom domain **`velo.capgo.app`** to worker **`velo`**
-7. Smoke test:
+1. **Secrets:** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` come from Cap-go **org** secrets (already set). `JWT_SECRET` is on the **Cap-go/Velo** repo (already set).
+2. **D1:** `velo-db` already exists — id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` on account `9ee3d7479a3c359681e3fab2c8cb22c0` (see `wrangler.toml`).
+3. Merge PR to `main` (only when CI green and review approved).
+4. Deploy workflow runs after CI passes: migrations → `wrangler deploy --env production --var APP_URL:https://velo.capgo.app`
+5. Confirm custom domain **`velo.capgo.app`** routes to worker **`velo`**
+6. Smoke test:
    - `/` loads landing
    - Signup → create program (save **convert secret** shown once) → add affiliate
    - Open `/r/:code` → lands on merchant URL with `velo_ref=`
@@ -64,6 +63,7 @@ bun run deploy   # or: bunx wrangler deploy --env production --var APP_URL:https
 - Run `bun run test` and keep CI green
 - Use version tags for GitHub Actions, not SHA pins
 - Do not commit secrets or placeholder D1 IDs
+- Do not add Cloudflare secrets to the Velo repo — they live at Cap-go org level
 
 ## PR workflow
 
