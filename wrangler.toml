@@ -16,10 +16,10 @@ migrations_dir = "migrations"
 
 [vars]
 APP_URL = "http://localhost:5173"
+CONSOLE_URL = "http://localhost:5173"
 
 [env.production]
-# Placeholder until first deploy; live host is https://velo.<account-subdomain>.workers.dev
-vars = { APP_URL = "https://velo.workers.dev" }
+vars = { APP_URL = "https://capve.app", CONSOLE_URL = "https://console.capve.app" }
 
 [[env.production.d1_databases]]
 binding = "DB"

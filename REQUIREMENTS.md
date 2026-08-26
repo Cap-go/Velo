@@ -21,7 +21,7 @@ An affiliate shares a short link. A click records the visit and sends the visito
 | --- | --- |
 | Email/password auth | `/api/auth/signup`, `/login`, JWT session cookie |
 | Program + destination URL | `POST /api/programs` (required `destination_url`), `PATCH /api/programs/:id` |
-| Affiliates + unique links | `POST /api/programs/:id/affiliates` → `/r/:code` |
+| Affiliates + unique links | `POST /api/programs/:id/affiliates` → `https://capve.app/r/:code` |
 | Redirect | `/r/:code` → program destination; optional `?url=` **same host only**; append `velo_ref=<code>` on Location |
 | Conversions | `POST /api/v1/convert` with `X-Program-Secret` + `affiliate_code`; idempotent by `(program_id, order_id)` |
 | CORS | `POST` + `OPTIONS` on `/api/v1/convert`, `Access-Control-Allow-Origin: *` |
@@ -30,9 +30,14 @@ An affiliate shares a short link. A click records the visit and sends the visito
 
 ### Site structure
 
-- **`/`** — marketing landing (product, pricing copy, signup CTA)
-- **`/app`** — merchant dashboard
-- **`/signup`**, **`/login`** — auth pages
+Production uses **host-based routing** on one Worker:
+
+| Host | Routes |
+| --- | --- |
+| **https://capve.app** | `/` landing only; `/login`, `/signup`, `/app` redirect to console |
+| **https://console.capve.app** | `/login`, `/signup`, `/app`; `/` redirects to `/app` |
+
+Local dev: all routes on `http://localhost:5173`.
 
 ### Tests (`bun run test`)
 
@@ -56,7 +61,9 @@ Must pass in CI:
 | D1 database | `velo-db` (already created) |
 | D1 database ID | `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
 | Account | Digital shift — `9ee3d7479a3c359681e3fab2c8cb22c0` |
-| Production URL | `https://velo.<account-subdomain>.workers.dev` (default Workers host; from `wrangler deploy` output) |
+| Landing URL | `https://capve.app` |
+| Console URL | `https://console.capve.app` |
+| Tracking links | `https://capve.app/r/{code}` (`APP_URL`) |
 
 **GitHub secrets**
 
@@ -68,7 +75,7 @@ Must pass in CI:
 
 The deploy workflow uses `${{ secrets.CLOUDFLARE_* }}` and `${{ secrets.JWT_SECRET }}`. Org-level Cloudflare secrets are inherited; only `JWT_SECRET` is repo-specific.
 
-Do **not** attach a custom domain — production runs on the Worker’s `*.workers.dev` hostname only.
+Attach **`capve.app`** and **`console.capve.app`** to worker **`velo`** in Cloudflare. Optional: redirect **`www.capve.app`** → apex **`https://capve.app`**.
 
 ## Out of scope (MVP)
 
@@ -87,6 +94,7 @@ Do **not** build these unless explicitly requested:
 - **No dummy D1 IDs** — use the real `database_id` in `wrangler.toml` or create DB and update both sections
 - **No pinned action SHAs** — GitHub Actions use version tags (`@v4`, `@v3`, etc.)
 - **No secrets in git** — use GitHub secrets, `.dev.vars` locally (gitignored)
+- **No workers.dev or capgo.app product URLs** — use `capve.app` / `console.capve.app` only
 
 ## Reference
 

@@ -10,7 +10,7 @@ import {
 } from "../db/queries";
 import type { Env } from "../types";
 import { apiKey, convertSecret, id, slugify } from "../lib/utils";
-import { buildTrackingUrl, parseHttpUrl, resolveAppBaseUrl } from "../lib/urls";
+import { buildTrackingUrl, parseHttpUrl } from "../lib/urls";
 import { requireUser } from "./auth";
 
 const programs = new Hono<{ Bindings: Env }>();
@@ -128,10 +128,7 @@ programs.post("/:id/affiliates", async (c) => {
     name,
   });
 
-  const trackingUrl = buildTrackingUrl(
-    resolveAppBaseUrl(c.req.url, c.env.APP_URL),
-    affiliate.code,
-  );
+  const trackingUrl = buildTrackingUrl(c.env.APP_URL, affiliate.code);
   return c.json({ affiliate, tracking_url: trackingUrl }, 201);
 });
 

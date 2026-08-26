@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { ErrorBox, Field, Shell } from "../components/ui";
 import {
   api,
@@ -10,6 +10,7 @@ import {
   type ProgramStats,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { apiBaseUrl, landingPath } from "../lib/constants";
 
 export function DashboardPage() {
   const { user, loading, setUser } = useAuth();
@@ -244,7 +245,7 @@ export function DashboardPage() {
                     {`// Server-side checkout handler
 const affiliateCode = req.body.affiliate_code; // from form / localStorage
 
-await fetch("${window.location.origin}/api/v1/convert", {
+await fetch("${apiBaseUrl()}/api/v1/convert", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -260,7 +261,7 @@ await fetch("${window.location.origin}/api/v1/convert", {
                   <p className="mt-3 text-sm text-[var(--velo-muted)]">
                     Browser attribution snippet (stores <span className="mono">velo_ref</span>{" "}
                     only):{" "}
-                    <span className="mono">{`${window.location.origin}/api/v1/snippet`}</span>
+                    <span className="mono">{`${apiBaseUrl()}/api/v1/snippet`}</span>
                   </p>
                 </div>
 
@@ -362,7 +363,10 @@ await fetch("${window.location.origin}/api/v1/convert", {
         </div>
 
         <p className="text-sm text-[var(--velo-muted)]">
-          Need the marketing site? <Link className="underline" to="/">Back to home</Link>
+          Need the marketing site?{" "}
+          <a className="underline" href={landingPath()}>
+            Back to capve.app
+          </a>
         </p>
       </div>
     </Shell>

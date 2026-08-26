@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "deploy": "bun run build && wrangler deploy --env production",
+    "deploy": "bun run build && wrangler deploy --env production --var APP_URL:https://capve.app --var CONSOLE_URL:https://console.capve.app",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

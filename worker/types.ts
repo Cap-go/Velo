@@ -2,6 +2,7 @@ export type Env = {
   DB: D1Database;
   ASSETS: Fetcher;
   APP_URL: string;
+  CONSOLE_URL: string;
   JWT_SECRET?: string;
 };
 
