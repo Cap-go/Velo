@@ -20,7 +20,6 @@ app.route("/api/v1/convert", convert);
 app.route("/r", redirect);
 
 import { ATTRIBUTION_SNIPPET } from "./lib/urls";
-import { hostRoutingRedirect } from "./lib/hosts";
 
 app.get("/api/v1/snippet", (c) => {
   return c.text(ATTRIBUTION_SNIPPET, 200, {
@@ -29,10 +28,6 @@ app.get("/api/v1/snippet", (c) => {
 });
 
 app.all("*", async (c) => {
-  const url = new URL(c.req.url);
-  const routed = hostRoutingRedirect(url);
-  if (routed) return routed;
-
   const assets = c.env.ASSETS;
   if (!assets) {
     return c.text("Velo API running. Build the frontend with `bun run build`.", 404);

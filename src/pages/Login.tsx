@@ -28,7 +28,7 @@ export function LoginPage() {
   }
 
   return (
-    <Shell homeTo="/app"
+    <Shell
       cta={
         <Link className="btn btn-secondary" to="/signup">
           Create account

@@ -30,14 +30,9 @@ An affiliate shares a short link. A click records the visit and sends the visito
 
 ### Site structure
 
-Production uses **host-based routing** on one Worker:
-
-| Host | Routes |
-| --- | --- |
-| **https://capve.app** | `/` landing only; `/login`, `/signup`, `/app` redirect to console |
-| **https://console.capve.app** | `/login`, `/signup`, `/app`; `/` redirects to `/app` |
-
-Local dev: all routes on `http://localhost:5173`.
+- **`/`** — marketing landing (product, pricing copy, signup CTA)
+- **`/app`** — merchant dashboard
+- **`/signup`**, **`/login`** — auth pages
 
 ### Tests (`bun run test`)
 
@@ -61,9 +56,7 @@ Must pass in CI:
 | D1 database | `velo-db` (already created) |
 | D1 database ID | `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
 | Account | Digital shift — `9ee3d7479a3c359681e3fab2c8cb22c0` |
-| Landing URL | `https://capve.app` |
-| Console URL | `https://console.capve.app` |
-| Tracking links | `https://capve.app/r/{code}` (`APP_URL`) |
+| Production URL | `https://capve.app` |
 
 **GitHub secrets**
 
@@ -75,7 +68,7 @@ Must pass in CI:
 
 The deploy workflow uses `${{ secrets.CLOUDFLARE_* }}` and `${{ secrets.JWT_SECRET }}`. Org-level Cloudflare secrets are inherited; only `JWT_SECRET` is repo-specific.
 
-Attach **`capve.app`** and **`console.capve.app`** to worker **`velo`** in Cloudflare. Optional: redirect **`www.capve.app`** → apex **`https://capve.app`**.
+Attach **`capve.app`** to worker **`velo`** in Cloudflare. Optional: redirect **`www.capve.app`** → apex **`https://capve.app`**.
 
 ## Out of scope (MVP)
 
@@ -86,6 +79,7 @@ Do **not** build these unless explicitly requested:
 - Social login (OAuth)
 - Plan-limit enforcement (Free vs Pro limits are marketing copy only)
 - Replacing or integrating with **Affonso**
+- Host splits (e.g. separate console subdomain)
 
 ## Non-goals / security
 
@@ -94,7 +88,7 @@ Do **not** build these unless explicitly requested:
 - **No dummy D1 IDs** — use the real `database_id` in `wrangler.toml` or create DB and update both sections
 - **No pinned action SHAs** — GitHub Actions use version tags (`@v4`, `@v3`, etc.)
 - **No secrets in git** — use GitHub secrets, `.dev.vars` locally (gitignored)
-- **No workers.dev or capgo.app product URLs** — use `capve.app` / `console.capve.app` only
+- **No workers.dev or capgo.app product URLs** — use `https://capve.app` only
 
 ## Reference
 

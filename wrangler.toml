@@ -16,10 +16,9 @@ migrations_dir = "migrations"
 
 [vars]
 APP_URL = "http://localhost:5173"
-CONSOLE_URL = "http://localhost:5173"
 
 [env.production]
-vars = { APP_URL = "https://capve.app", CONSOLE_URL = "https://console.capve.app" }
+vars = { APP_URL = "https://capve.app" }
 
 [[env.production.d1_databases]]
 binding = "DB"

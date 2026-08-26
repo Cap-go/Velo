@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Shell } from "../components/ui";
-import { consolePath, TRACKING_BASE_URL } from "../lib/constants";
+import { PRODUCTION_APP_URL } from "../lib/constants";
 
 const features = [
   {
@@ -22,12 +22,12 @@ export function LandingPage() {
     <Shell
       cta={
         <>
-          <a className="btn btn-ghost" href={consolePath("/login")}>
+          <Link className="btn btn-ghost" to="/login">
             Log in
-          </a>
-          <a className="btn btn-primary" href={consolePath("/signup")}>
+          </Link>
+          <Link className="btn btn-primary" to="/signup">
             Start free
-          </a>
+          </Link>
         </>
       }
     >
@@ -45,9 +45,9 @@ export function LandingPage() {
               click-to-conversion path you can ship this week.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a className="btn btn-primary" href={consolePath("/signup")}>
+              <Link className="btn btn-primary" to="/signup">
                 Create your program
-              </a>
+              </Link>
               <a className="btn btn-secondary" href="#pricing">
                 See pricing
               </a>
@@ -58,12 +58,12 @@ export function LandingPage() {
             <p className="text-sm font-semibold text-[var(--velo-muted)]">Live flow</p>
             <ol className="mt-4 space-y-4 text-sm leading-relaxed">
               <li>
-                <strong>1.</strong> Merchant creates a program at console.capve.app.
+                <strong>1.</strong> Merchant creates a program and adds affiliates.
               </li>
               <li>
                 <strong>2.</strong> Affiliate shares{" "}
                 <span className="mono rounded bg-[var(--velo-accent-soft)] px-2 py-1">
-                  {TRACKING_BASE_URL}/r/code
+                  {PRODUCTION_APP_URL}/r/code
                 </span>
               </li>
               <li>
@@ -104,9 +104,9 @@ export function LandingPage() {
               <li>Up to 5 affiliates</li>
               <li>Full click + conversion tracking</li>
             </ul>
-            <a className="btn btn-secondary mt-6" href={consolePath("/signup")}>
+            <Link className="btn btn-secondary mt-6" to="/signup">
               Start free
-            </a>
+            </Link>
           </article>
           <article className="card border-[var(--velo-accent)] p-6">
             <p className="text-sm font-semibold text-[var(--velo-accent)]">Pro</p>
@@ -116,15 +116,19 @@ export function LandingPage() {
               <li>Priority support</li>
               <li>Export-ready stats (coming soon)</li>
             </ul>
-            <a className="btn btn-primary mt-6" href={consolePath("/signup")}>
+            <Link className="btn btn-primary mt-6" to="/signup">
               Start free, upgrade later
-            </a>
+            </Link>
           </article>
         </div>
       </section>
 
       <footer className="mx-auto max-w-6xl px-6 py-10 text-sm text-[var(--velo-muted)]">
-        Velo — affiliate tracking at capve.app. Merchants sign in at console.capve.app.
+        Velo — affiliate tracking at{" "}
+        <a className="underline" href={PRODUCTION_APP_URL}>
+          capve.app
+        </a>
+        .
       </footer>
     </Shell>
   );

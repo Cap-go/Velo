@@ -4,16 +4,14 @@ import { Link } from "react-router-dom";
 export function Shell({
   children,
   cta,
-  homeTo = "/",
 }: {
   children: ReactNode;
   cta?: ReactNode;
-  homeTo?: string;
 }) {
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link to={homeTo} className="text-xl font-bold tracking-tight">
+        <Link to="/" className="text-xl font-bold tracking-tight">
           Velo
         </Link>
         <nav className="flex items-center gap-3">{cta}</nav>

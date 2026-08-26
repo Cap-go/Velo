@@ -8,10 +8,9 @@ Velo = standalone affiliate tracker for indie/SaaS. **Not** Capgo Affonso.
 
 | Path | Purpose |
 | --- | --- |
-| `worker/` | Hono API, redirect, convert, auth, host routing |
-| `worker/lib/hosts.ts` | Production host split (capve.app vs console.capve.app) |
+| `worker/` | Hono API, redirect, convert, auth |
 | `src/` | React UI (landing `/`, dashboard `/app`) |
-| `src/lib/constants.ts` | Production URLs |
+| `src/lib/constants.ts` | Production URL (`https://capve.app`) |
 | `migrations/` | D1 schema |
 | `tests/tracking.test.ts` | Integration tests (Workers pool) |
 | `wrangler.toml` | Worker + D1 + production vars |
@@ -19,22 +18,18 @@ Velo = standalone affiliate tracker for indie/SaaS. **Not** Capgo Affonso.
 
 Stack: TypeScript, Bun, Vite, Cloudflare Worker + D1, `@cloudflare/vite-plugin`.
 
-## Production URLs
+## Production URL
 
-| Host | Purpose |
-| --- | --- |
-| **https://capve.app** | Landing only |
-| **https://console.capve.app** | Login, signup, dashboard, API docs in UI |
-| **https://capve.app/r/{code}** | Affiliate tracking links (`APP_URL`) |
+**https://capve.app** — single app: landing `/`, auth `/login` + `/signup`, dashboard `/app`, API, and tracking links `/r/{code}`.
 
-Do **not** use `*.workers.dev` or `*.capgo.app` as product URLs.
+Do **not** use `*.workers.dev`, `*.capgo.app`, or split hosts (e.g. `console.capve.app`).
 
 ## Local commands
 
 ```bash
 bun install
 bun run db:migrate:local
-bun run dev          # http://localhost:5173 — all routes in dev
+bun run dev          # http://localhost:5173
 bun run test         # must pass before PR
 bun run typecheck
 bun run build
@@ -49,12 +44,12 @@ Prerequisites are in REQUIREMENTS.md. Steps:
 1. **Secrets:** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` come from Cap-go **org** secrets (already set). `JWT_SECRET` is on the **Cap-go/Velo** repo (already set).
 2. **D1:** `velo-db` already exists — id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` on account `9ee3d7479a3c359681e3fab2c8cb22c0` (see `wrangler.toml`).
 3. Merge PR to `main` (only when CI green and review approved).
-4. Deploy workflow runs after CI passes: migrations → `wrangler deploy --env production --var APP_URL:https://capve.app --var CONSOLE_URL:https://console.capve.app`
-5. Confirm **`capve.app`** and **`console.capve.app`** route to worker **`velo`** (optional `www` → apex redirect)
-6. Smoke test:
-   - **https://capve.app/** loads landing; `/login` redirects to console
-   - **https://console.capve.app/signup** → create program → add affiliate
-   - Open `https://capve.app/r/:code` → lands on merchant URL with `velo_ref=`
+4. Deploy workflow runs after CI passes: migrations → `wrangler deploy --env production --var APP_URL:https://capve.app`
+5. Confirm **`capve.app`** routes to worker **`velo`** (optional `www` → apex redirect)
+6. Smoke test at **https://capve.app**:
+   - `/` loads landing
+   - Signup → create program (save **convert secret** shown once) → add affiliate
+   - Open `/r/:code` → lands on merchant URL with `velo_ref=`
    - POST convert from server with `X-Program-Secret` + `affiliate_code` → stats update
 
 Manual deploy (if needed):
@@ -76,7 +71,7 @@ bun run deploy
 - Use version tags for GitHub Actions, not SHA pins
 - Do not commit secrets or placeholder D1 IDs
 - Do not add Cloudflare secrets to the Velo repo — they live at Cap-go org level
-- Keep host split: landing on capve.app, SaaS on console.capve.app
+- Do **not** split landing vs SaaS onto separate hostnames unless explicitly requested
 
 ## PR workflow
 

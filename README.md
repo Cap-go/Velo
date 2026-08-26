@@ -13,19 +13,15 @@ Velo lets merchants create affiliate programs, give partners unique tracking lin
 - **Database**: Cloudflare D1
 - **Deploy**: One Worker project with static assets (`wrangler.toml`)
 
-**Production hosts** (same Worker, host-based routing):
+Production URL: **https://capve.app**
 
-| Host | Purpose |
-| --- | --- |
-| **https://capve.app** | Marketing landing only (`/`) |
-| **https://console.capve.app** | SaaS app — login, signup, dashboard |
+Routes:
 
-Shared routes on both hosts:
-
+- `/` — marketing landing page
+- `/app` — merchant dashboard
+- `/login`, `/signup` — auth
 - `/r/:code` — affiliate redirect to the program destination (+ optional same-host `?url=`)
 - `/api/v1/convert` — conversion tracking (`X-Program-Secret` + `affiliate_code`, server-side)
-
-Tracking links use **https://capve.app/r/{code}**. Merchant API examples in the dashboard use **console.capve.app**.
 
 Each program stores a **destination URL**. Tracking links redirect there and append `velo_ref=<code>` so merchant checkout can attribute cross-domain conversions via `localStorage` (see `/api/v1/snippet`).
 
@@ -42,7 +38,7 @@ bun run db:migrate:local
 bun run dev
 ```
 
-Open http://localhost:5173 (all routes on one origin in dev).
+Open http://localhost:5173
 
 The Vite dev server runs the Worker and frontend together via `@cloudflare/vite-plugin`.
 
@@ -72,12 +68,7 @@ Coverage:
 
 ## Production deploy (Cloudflare)
 
-| URL | Role |
-| --- | --- |
-| **https://capve.app** | Landing (`/` only) |
-| **https://console.capve.app** | Login, signup, dashboard |
-
-Optional: redirect **www.capve.app** → apex **https://capve.app**.
+Production URL: **https://capve.app** (apex; optional **www.capve.app** → apex redirect in Cloudflare).
 
 ### 1. D1 database
 
@@ -108,14 +99,14 @@ Manual deploy:
 ```bash
 bun run build
 bunx wrangler d1 migrations apply velo-db --remote
-bun run deploy
+bun run deploy   # deploys to https://capve.app
 ```
 
-Attach **`capve.app`** and **`console.capve.app`** to worker **`velo`** in the Cloudflare dashboard if not already routed.
+Attach **`capve.app`** (and optionally **`www.capve.app`** → apex redirect) to worker **`velo`** in the Cloudflare dashboard if not already routed.
 
 ## Merchant flow
 
-1. Sign up at **https://console.capve.app/signup**
+1. Sign up at `/signup`
 2. Create a program in `/app`
 3. Add an affiliate and copy the generated `https://capve.app/r/{code}` link
 4. Share the link — clicks are tracked and a first-party cookie is set
@@ -124,13 +115,13 @@ Attach **`capve.app`** and **`console.capve.app`** to worker **`velo`** in the C
 Example server-side conversion request:
 
 ```bash
-curl -X POST https://console.capve.app/api/v1/convert \
+curl -X POST https://capve.app/api/v1/convert \
   -H "Content-Type: application/json" \
   -H "X-Program-Secret: sk_..." \
   -d '{"order_id":"order_123","amount":49,"affiliate_code":"abc123"}'
 ```
 
-The browser snippet at `https://console.capve.app/api/v1/snippet` only stores `velo_ref` from the query string into `localStorage`.
+The browser snippet at `https://capve.app/api/v1/snippet` only stores `velo_ref` from the query string into `localStorage`.
 
 ## Pricing (product)
 
