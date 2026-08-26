@@ -1,0 +1,27 @@
+name = "velo"
+main = "worker/index.ts"
+compatibility_date = "2025-08-26"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "velo-db"
+database_id = "eb916c67-6e45-4798-a6d9-c0e47f99cb8d"
+migrations_dir = "migrations"
+
+[vars]
+APP_URL = "http://localhost:5173"
+
+[env.production]
+vars = { APP_URL = "https://capve.app" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "velo-db"
+database_id = "eb916c67-6e45-4798-a6d9-c0e47f99cb8d"
+migrations_dir = "migrations"
