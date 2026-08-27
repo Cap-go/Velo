@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply velo-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply velo-db --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply velo-db --remote",
+    "setup-access": "bun run scripts/setup-access.mjs"
   },
   "dependencies": {
     "hono": "^4.9.6",
