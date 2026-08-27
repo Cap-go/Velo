@@ -1,10 +1,10 @@
-# Velo requirements
+# Capve requirements
 
-Velo is an **open-source, self-hosted affiliate tracker** for indie and SaaS founders. Deploy it on your own Cloudflare account. It is **not** Capgo’s existing Affonso program and does not replace it.
+Capve is an **open-source, self-hosted affiliate tracker** for indie and SaaS founders. Deploy it on your own Cloudflare account. It is **not** Capgo’s existing Affonso program and does not replace it.
 
 ## Product
 
-A self-hosted Velo instance lets a merchant:
+A self-hosted Capve instance lets a merchant:
 
 1. Open `/app` (protected by **Cloudflare Access** in production)
 2. Create a **program** with a **destination URL** (where affiliates send traffic)
@@ -32,7 +32,7 @@ There is **no SaaS signup**, **no email/password login**, and **no pricing**.
 
 ### Site structure
 
-- **`/`** — project homepage (what Velo is + how to install; Deploy to Cloudflare button)
+- **`/`** — project homepage (what Capve is + how to install; Deploy to Cloudflare button)
 - **`/app`** — merchant dashboard (Cloudflare Access in production)
 
 **Public routes** (must stay unauthenticated): `/`, `/r/:code`, `POST /api/v1/convert` + OPTIONS, `GET /api/v1/snippet`, `GET /api/health`.
@@ -41,7 +41,7 @@ There is **no SaaS signup**, **no email/password login**, and **no pricing**.
 
 ### Install
 
-- **One-click:** [Deploy to Cloudflare](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Velo) provisions Worker + D1 on the visitor’s account.
+- **One-click:** [Deploy to Cloudflare](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Capve) provisions Worker + D1 on the visitor’s account.
 - **This repo’s CI** deploys to `capve.app` (Digital Shift demo/homepage install) using the existing D1 id in `wrangler.toml`.
 - After deploy, run `bun run setup-access` (or the **Setup Cloudflare Access** GitHub Action) to apply path-based Zero Trust Access on `/app*`, `/api/programs*`, and `/api/auth*` — not the whole Worker. The script writes `TEAM_DOMAIN` and `POLICY_AUD` to the Worker so JWT verification is enforced.
 
@@ -102,7 +102,7 @@ Do **not** build these unless explicitly requested:
 ## Non-goals / security
 
 - **No open redirects** — redirects bound to program destination; `?url=` same-host only
-- **No cross-site cookie attribution** — merchant conversions use `velo_ref` query + `affiliate_code`, not Velo cookies
+- **No cross-site cookie attribution** — merchant conversions use `velo_ref` query + `affiliate_code`, not Capve cookies
 - **Path-based Access only** — wrapping the whole Worker breaks `/r/*` and convert
 - **No dummy D1 IDs** in this repo’s production config
 - **No pinned action SHAs** — GitHub Actions use version tags

@@ -1,12 +1,12 @@
-# Velo
+# Capve
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Velo)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Capve)
 
 Open-source, self-hosted affiliate tracking for indie and SaaS founders. Deploy on your Cloudflare account — no SaaS signup, no pricing tiers.
 
-**Repo:** https://github.com/Cap-go/Velo · **Requirements:** [REQUIREMENTS.md](./REQUIREMENTS.md) · **Agents:** [AGENTS.md](./AGENTS.md)
+**Repo:** https://github.com/Cap-go/Capve · **Requirements:** [REQUIREMENTS.md](./REQUIREMENTS.md) · **Agents:** [AGENTS.md](./AGENTS.md)
 
-Velo lets you run affiliate programs on infrastructure you control: unique tracking links, click-through cookies, and server-side conversion attribution.
+Capve lets you run affiliate programs on infrastructure you control: unique tracking links, click-through cookies, and server-side conversion attribution.
 
 ## Stack
 
@@ -109,4 +109,4 @@ The browser snippet at `/api/v1/snippet` stores `velo_ref` from the query string
 
 ## License
 
-Open source — see [github.com/Cap-go/Velo](https://github.com/Cap-go/Velo).
+Open source — see [github.com/Cap-go/Capve](https://github.com/Cap-go/Capve).

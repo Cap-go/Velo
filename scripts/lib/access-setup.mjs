@@ -1,6 +1,8 @@
 /** @typedef {{ type: "public"; uri: string }} PublicDestination */
 
-export const APP_NAME = "Velo";
+export const APP_NAME = "Capve";
+/** Legacy Access app name on capve.app — still matched by findVeloAccessApp. */
+export const LEGACY_APP_NAME = "Velo";
 export const POLICY_NAME = "Allow operators";
 
 const PROTECTED_PATHS = ["/app*", "/api/programs*", "/api/auth*"];
@@ -133,7 +135,7 @@ export function extractPolicyAud(app) {
  * @param {string} appHost
  */
 export function appMatchesVeloInstall(app, appHost) {
-  if (app.name === APP_NAME) return true;
+  if (app.name === APP_NAME || app.name === LEGACY_APP_NAME) return true;
 
   const hosts = apexHostAliases(appHost);
   const destinations = /** @type {PublicDestination[] | undefined} */ (app.destinations);

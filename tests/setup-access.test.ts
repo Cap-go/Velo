@@ -58,6 +58,7 @@ describe("access setup builders", () => {
 
   it("builds access application body for self-hosted paths", () => {
     const body = buildAccessApplicationBody("capve.app", [], ["capgo.app"]);
+    expect(body.name).toBe("Capve");
     expect(body.type).toBe("self_hosted");
     expect(body.domain).toBe("capve.app/app*");
     expect(body.session_duration).toBe("24h");
@@ -80,12 +81,18 @@ describe("access setup builders", () => {
     expect(extractPolicyAud({})).toBeNull();
   });
 
-  it("finds existing Velo access app by name or domain", () => {
-    const apps = [
+  it("finds existing Capve access app by name, legacy Velo name, or domain", () => {
+    const legacyApps = [
       { name: "Other", domain: "other.example.com/app" },
       { name: "Velo", domain: "capve.app/app", id: "app-1" },
     ];
-    expect(findVeloAccessApp(apps, "capve.app")?.id).toBe("app-1");
+    expect(findVeloAccessApp(legacyApps, "capve.app")?.id).toBe("app-1");
+
+    const capveApps = [
+      { name: "Other", domain: "other.example.com/app" },
+      { name: "Capve", domain: "capve.app/app", id: "app-capve" },
+    ];
+    expect(findVeloAccessApp(capveApps, "capve.app")?.id).toBe("app-capve");
 
     const byDestination = [
       {

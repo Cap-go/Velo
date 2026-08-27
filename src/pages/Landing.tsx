@@ -53,7 +53,7 @@ export function LandingPage() {
               Affiliate tracking you deploy on your own Cloudflare account.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-[var(--velo-muted)]">
-              Velo is a lightweight affiliate tracker for indie SaaS. No SaaS signup, no pricing
+              Capve is a lightweight affiliate tracker for indie SaaS. No SaaS signup, no pricing
               tiers — one-click deploy, open /app, and start tracking affiliates.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -75,7 +75,7 @@ export function LandingPage() {
             <p className="text-sm font-semibold text-[var(--velo-muted)]">Live flow</p>
             <ol className="mt-4 space-y-4 text-sm leading-relaxed">
               <li>
-                <strong>1.</strong> Deploy Velo to your Cloudflare account.
+                <strong>1.</strong> Deploy Capve to your Cloudflare account.
               </li>
               <li>
                 <strong>2.</strong> Create a program and add affiliates in{" "}
@@ -150,9 +150,9 @@ export function LandingPage() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-6 py-10 text-sm text-[var(--velo-muted)]">
-        Velo — open source at{" "}
+        Capve — open source at{" "}
         <a className="underline" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
-          github.com/Cap-go/Velo
+          github.com/Cap-go/Capve
         </a>
         . Demo install:{" "}
         <a className="underline" href={PRODUCTION_APP_URL}>

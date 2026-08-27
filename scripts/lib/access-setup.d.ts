@@ -1,6 +1,7 @@
 export type PublicDestination = { type: "public"; uri: string };
 
 export const APP_NAME: string;
+export const LEGACY_APP_NAME: string;
 export const POLICY_NAME: string;
 export const FORBIDDEN_PROTECTED_URI_PATTERNS: RegExp[];
 

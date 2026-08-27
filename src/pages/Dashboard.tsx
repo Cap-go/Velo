@@ -267,7 +267,7 @@ await fetch("${appBaseUrl()}/api/v1/convert", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "X-Program-Secret": process.env.VELO_CONVERT_SECRET
+    "X-Program-Secret": process.env.CAPVE_CONVERT_SECRET
   },
   body: JSON.stringify({
     order_id: "order_123",

@@ -30,7 +30,7 @@ app.get("/api/v1/snippet", (c) => {
 app.all("*", async (c) => {
   const assets = c.env.ASSETS;
   if (!assets) {
-    return c.text("Velo API running. Build the frontend with `bun run build`.", 404);
+    return c.text("Capve API running. Build the frontend with `bun run build`.", 404);
   }
   return assets.fetch(c.req.raw);
 });
