@@ -3,14 +3,7 @@
 export const APP_NAME = "Velo";
 export const POLICY_NAME = "Allow operators";
 
-const PROTECTED_PATHS = [
-  "/app",
-  "/app/*",
-  "/api/programs",
-  "/api/programs/*",
-  "/api/auth",
-  "/api/auth/*",
-];
+const PROTECTED_PATHS = ["/app*", "/api/programs*", "/api/auth*"];
 
 /** Paths that must stay public — used by tests and validation. */
 export const FORBIDDEN_PROTECTED_URI_PATTERNS = [
@@ -144,12 +137,14 @@ export function appMatchesVeloInstall(app, appHost) {
 
   const hosts = apexHostAliases(appHost);
   const destinations = /** @type {PublicDestination[] | undefined} */ (app.destinations);
-  if (destinations?.some((d) => hosts.some((h) => d.uri === `${h}/app` || d.uri === `${h}/app/*`))) {
+  if (destinations?.some((d) => hosts.some((h) => d.uri === `${h}/app*` || d.uri === `${h}/app` || d.uri === `${h}/app/*`))) {
     return true;
   }
 
   const domain = typeof app.domain === "string" ? app.domain : "";
-  return hosts.some((h) => domain === `${h}/app` || domain === `${h}/app/*`);
+  return hosts.some(
+    (h) => domain === `${h}/app` || domain === `${h}/app/*` || domain === `${h}/app*`,
+  );
 }
 
 /**
