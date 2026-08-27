@@ -12,6 +12,7 @@ import {
   readSession,
   sessionCookie,
 } from "../lib/auth";
+import { authCookieDomain } from "../lib/hosts";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { id } from "../lib/utils";
 
@@ -41,7 +42,8 @@ auth.post("/signup", async (c) => {
 
   const token = await createSession(c.env, { id: user.id, email: user.email, created_at: user.created_at });
   const secure = isSecureRequest(new URL(c.req.url));
-  c.header("Set-Cookie", sessionCookie(token, secure));
+  const domain = authCookieDomain(c.env.CONSOLE_URL);
+  c.header("Set-Cookie", sessionCookie(token, secure, domain));
   return c.json({ user: { id: user.id, email: user.email } }, 201);
 });
 
@@ -65,13 +67,15 @@ auth.post("/login", async (c) => {
     created_at: user.created_at,
   });
   const secure = isSecureRequest(new URL(c.req.url));
-  c.header("Set-Cookie", sessionCookie(token, secure));
+  const domain = authCookieDomain(c.env.CONSOLE_URL);
+  c.header("Set-Cookie", sessionCookie(token, secure, domain));
   return c.json({ user: { id: user.id, email: user.email } });
 });
 
 auth.post("/logout", async (c) => {
   const secure = isSecureRequest(new URL(c.req.url));
-  c.header("Set-Cookie", clearSessionCookie(secure));
+  const domain = authCookieDomain(c.env.CONSOLE_URL);
+  c.header("Set-Cookie", clearSessionCookie(secure, domain));
   return c.json({ ok: true });
 });
 

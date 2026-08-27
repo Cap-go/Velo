@@ -128,7 +128,7 @@ programs.post("/:id/affiliates", async (c) => {
     name,
   });
 
-  const trackingUrl = buildTrackingUrl(c.env.APP_URL, affiliate.code);
+  const trackingUrl = buildTrackingUrl(c.env.CONSOLE_URL, affiliate.code);
   return c.json({ affiliate, tracking_url: trackingUrl }, 201);
 });
 

@@ -1,17 +1,10 @@
 # Velo requirements
 
-Velo is a **standalone self-serve affiliate tracker** for indie and SaaS founders. It is **not** Capgo’s existing Affonso program and does not replace it.
+Velo is a **standalone self-serve affiliate tracker** for indie and SaaS founders. It is **not** Capgo’s existing Affonso program.
 
 ## Product (MVP)
 
-A merchant can:
-
-1. Sign up with email/password
-2. Create a **program** with a **destination URL** (where affiliates send traffic)
-3. Add **affiliates** and get unique tracking links
-4. See **dashboard stats**: affiliates, clicks, conversions, revenue, conversion rate
-
-An affiliate shares a short link. A click records the visit and sends the visitor to the merchant site with attribution attached.
+A merchant can sign up, create programs with destination URLs, add affiliates, and view dashboard stats.
 
 ## Done means (checklist)
 
@@ -19,79 +12,51 @@ An affiliate shares a short link. A click records the visit and sends the visito
 
 | Requirement | Implementation |
 | --- | --- |
-| Email/password auth | `/api/auth/signup`, `/login`, JWT session cookie |
-| Program + destination URL | `POST /api/programs` (required `destination_url`), `PATCH /api/programs/:id` |
-| Affiliates + unique links | `POST /api/programs/:id/affiliates` → `https://capve.app/r/:code` |
-| Redirect | `/r/:code` → program destination; optional `?url=` **same host only**; append `velo_ref=<code>` on Location |
-| Conversions | `POST /api/v1/convert` with `X-Program-Secret` + `affiliate_code`; idempotent by `(program_id, order_id)` |
-| CORS | `POST` + `OPTIONS` on `/api/v1/convert`, `Access-Control-Allow-Origin: *` |
-| Merchant snippet | `GET /api/v1/snippet` — browser-only: stores `velo_ref` in `localStorage` (conversions are server-side) |
-| Dashboard stats | `/app` + `GET /api/programs/:id/stats` |
+| Email/password auth | `/api/auth/signup`, `/login`, JWT session cookie on **console.capve.app** |
+| Program + destination URL | `POST /api/programs` |
+| Affiliates + unique links | `https://console.capve.app/r/:code` |
+| Redirect | `/r/:code` → destination + `velo_ref` |
+| Conversions | `POST /api/v1/convert` with `X-Program-Secret` + `affiliate_code` |
+| Dashboard stats | `/app` on console host |
 
-### Site structure
+### Site structure (production)
 
-- **`/`** — marketing landing (product, pricing copy, signup CTA)
-- **`/app`** — merchant dashboard
-- **`/signup`**, **`/login`** — auth pages
+| Host | Routes |
+| --- | --- |
+| **https://capve.app** | `/` landing only; `/login`, `/signup`, `/app` redirect to console |
+| **https://console.capve.app** | `/login`, `/signup`, `/app`; `/` → `/app` |
 
-### Tests (`bun run test`)
+**www.capve.app** redirects to apex **https://capve.app**.
 
-Must pass in CI:
+Local dev: all routes on `http://localhost:5173`.
 
-1. **Full path**: signup → program → affiliate → click → convert (`affiliate_code`, no cookie) → stats
-2. **Redirect rejection**: off-host `?url=` and `javascript:` schemes return 400
-3. **`velo_ref`**: 302 `Location` includes `velo_ref=<code>`
-4. **CORS**: OPTIONS preflight on `/api/v1/convert`
+Auth session cookies use `Domain=console.capve.app` in production (not sent to capve.app).
 
 ### CI / deploy
 
-- **CI** (`.github/workflows/ci.yml`): on PRs and `main` — typecheck, test, build
-- **Deploy** (`.github/workflows/deploy.yml`): runs only after **CI succeeds** on a push to `main` (`workflow_run`) — build, D1 migrations, `wrangler deploy`
+- **CI**: typecheck, test, build on PRs and `main`
+- **Deploy**: after CI on `main` (or manual dispatch)
 
 **Cloudflare target**
 
 | Resource | Value |
 | --- | --- |
 | Worker name | `velo` |
-| D1 database | `velo-db` (already created) |
-| D1 database ID | `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
+| D1 database | `velo-db` — `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
 | Account | Digital shift — `9ee3d7479a3c359681e3fab2c8cb22c0` |
-| Production URL | `https://capve.app` |
+| Landing URL (`APP_URL`) | `https://capve.app` |
+| Console URL (`CONSOLE_URL`) | `https://console.capve.app` |
+| Tracking links | `https://console.capve.app/r/{code}` |
 
-**GitHub secrets**
+Attach **`capve.app`**, **`www.capve.app`**, and **`console.capve.app`** to worker **`velo`**.
 
-| Secret | Where | Status |
-| --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
-| `JWT_SECRET` | **Cap-go/Velo** repo secret | Set — auth fails closed without it in production |
+## Non-goals
 
-The deploy workflow uses `${{ secrets.CLOUDFLARE_* }}` and `${{ secrets.JWT_SECRET }}`. Org-level Cloudflare secrets are inherited; only `JWT_SECRET` is repo-specific.
-
-Attach **`capve.app`** to worker **`velo`** in Cloudflare. Optional: redirect **`www.capve.app`** → apex **`https://capve.app`**.
-
-## Out of scope (MVP)
-
-Do **not** build these unless explicitly requested:
-
-- Stripe / billing / paid-plan checkout
-- Affiliate payouts
-- Social login (OAuth)
-- Plan-limit enforcement (Free vs Pro limits are marketing copy only)
-- Replacing or integrating with **Affonso**
-- Host splits (e.g. separate console subdomain)
-
-## Non-goals / security
-
-- **No open redirects** — redirects bound to program destination; `?url=` same-host only
-- **No cross-site cookie attribution** — merchant conversions use `velo_ref` query + `affiliate_code`, not Velo cookies
-- **No dummy D1 IDs** — use the real `database_id` in `wrangler.toml` or create DB and update both sections
-- **No pinned action SHAs** — GitHub Actions use version tags (`@v4`, `@v3`, etc.)
-- **No secrets in git** — use GitHub secrets, `.dev.vars` locally (gitignored)
-- **No workers.dev or capgo.app product URLs** — use `https://capve.app` only
+- **No `*.capgo.app`** product URLs
+- **No workers.dev** as the product URL
+- **No dashboard on capve.app** or marketing landing on console.capve.app
+- No open redirects, no cross-site cookie attribution for conversions
 
 ## Reference
 
-Operational commands and merchant flow: [README.md](./README.md)
-
-Agent workflow: [AGENTS.md](./AGENTS.md)
+[README.md](./README.md) · [AGENTS.md](./AGENTS.md)

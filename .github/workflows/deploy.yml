@@ -47,6 +47,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 9ee3d7479a3c359681e3fab2c8cb22c0
-          command: deploy --env production --var APP_URL:https://capve.app
+          command: deploy --env production --var APP_URL:https://capve.app --var CONSOLE_URL:https://console.capve.app
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}

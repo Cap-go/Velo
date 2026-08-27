@@ -16,9 +16,10 @@ migrations_dir = "migrations"
 
 [vars]
 APP_URL = "http://localhost:5173"
+CONSOLE_URL = "http://localhost:5173"
 
 [env.production]
-vars = { APP_URL = "https://capve.app" }
+vars = { APP_URL = "https://capve.app", CONSOLE_URL = "https://console.capve.app" }
 
 [[env.production.routes]]
 pattern = "capve.app"
@@ -26,6 +27,10 @@ custom_domain = true
 
 [[env.production.routes]]
 pattern = "www.capve.app"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "console.capve.app"
 custom_domain = true
 
 [[env.production.d1_databases]]

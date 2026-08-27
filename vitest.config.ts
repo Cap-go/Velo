@@ -8,6 +8,7 @@ export default defineWorkersConfig({
         miniflare: {
           bindings: {
             APP_URL: "http://localhost:5173",
+            CONSOLE_URL: "http://localhost:5173",
           },
         },
       },

@@ -7,7 +7,7 @@ const DEV_FALLBACK = "velo-dev-secret-change-in-production";
 
 function isLocalDev(env: Env): boolean {
   try {
-    const host = new URL(env.APP_URL).hostname;
+    const host = new URL(env.CONSOLE_URL).hostname;
     return host === "localhost" || host === "127.0.0.1";
   } catch {
     return false;
@@ -50,7 +50,11 @@ export async function readSession(
   }
 }
 
-export function sessionCookie(token: string, secure: boolean): string {
+export function sessionCookie(
+  token: string,
+  secure: boolean,
+  domain?: string,
+): string {
   const parts = [
     `${COOKIE}=${token}`,
     "Path=/",
@@ -58,12 +62,14 @@ export function sessionCookie(token: string, secure: boolean): string {
     "SameSite=Lax",
     `Max-Age=${MAX_AGE}`,
   ];
+  if (domain) parts.push(`Domain=${domain}`);
   if (secure) parts.push("Secure");
   return parts.join("; ");
 }
 
-export function clearSessionCookie(secure: boolean): string {
+export function clearSessionCookie(secure: boolean, domain?: string): string {
   const parts = [`${COOKIE}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
+  if (domain) parts.push(`Domain=${domain}`);
   if (secure) parts.push("Secure");
   return parts.join("; ");
 }
