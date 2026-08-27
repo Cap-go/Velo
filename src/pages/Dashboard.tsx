@@ -13,7 +13,7 @@ import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
 export function DashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, accessRequired, loading } = useAuth();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<ProgramStats | null>(null);
@@ -75,23 +75,32 @@ export function DashboardPage() {
     );
   }
 
-  if (!user) {
+  if (!user && accessRequired) {
     return (
       <Shell>
         <div className="mx-auto max-w-2xl px-6 py-16">
-          <h1 className="text-2xl font-bold">Dashboard unavailable</h1>
+          <h1 className="text-2xl font-bold">Sign in with Cloudflare Access</h1>
           <p className="mt-3 text-[var(--velo-muted)]">
-            Configure Cloudflare Access on <span className="mono">/app</span> and{" "}
-            <span className="mono">/api/programs*</span>, then set{" "}
-            <span className="mono">TEAM_DOMAIN</span> and <span className="mono">POLICY_AUD</span>{" "}
-            on the Worker. Tracking routes stay public.
+            This dashboard requires Cloudflare Access. Sign in to continue.
           </p>
           <p className="mt-4 text-sm text-[var(--velo-muted)]">
+            <a className="underline" href="/app">
+              Try again
+            </a>
+            {" · "}
             <Link className="underline" to="/">
-              Back to install instructions
+              Back to home
             </Link>
           </p>
         </div>
+      </Shell>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Shell>
+        <div className="mx-auto max-w-6xl px-6 py-16 text-[var(--velo-muted)]">Loading...</div>
       </Shell>
     );
   }

@@ -54,7 +54,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  me: () => request<{ user: User | null }>("/api/auth/me"),
+  me: () => request<{ user: User | null; access_required?: boolean }>("/api/auth/me"),
   programs: () => request<{ programs: Program[] }>("/api/programs"),
   createProgram: (name: string, destinationUrl: string) =>
     request<{ program: Program; convert_secret: string }>("/api/programs", {

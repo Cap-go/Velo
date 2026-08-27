@@ -13,7 +13,7 @@ Velo lets you run affiliate programs on infrastructure you control: unique track
 - **Frontend**: React + Vite + Tailwind (homepage + dashboard)
 - **Backend**: Cloudflare Worker (Hono)
 - **Database**: Cloudflare D1
-- **Auth**: Cloudflare Access (Zero Trust) for `/app` and program APIs
+- **Auth**: Cloudflare Access (optional) for `/app` and program APIs
 - **Deploy**: One Worker + static assets (`wrangler.toml`)
 
 ## Routes
@@ -21,11 +21,11 @@ Velo lets you run affiliate programs on infrastructure you control: unique track
 | Path | Access |
 | --- | --- |
 | `/` | Public — project homepage + install instructions |
-| `/app` | Cloudflare Access (production) |
+| `/app` | Open after deploy; optional Cloudflare Access hardening |
 | `/r/:code` | Public — affiliate redirect |
 | `/api/v1/convert` | Public — conversion API (`X-Program-Secret`) |
 | `/api/v1/snippet` | Public — browser attribution snippet |
-| `/api/programs/*` | Cloudflare Access (production) |
+| `/api/programs/*` | Instance owner after deploy; optional Cloudflare Access |
 
 Each program stores a **destination URL**. Tracking links redirect there and append `velo_ref=<code>` for merchant-site attribution.
 
@@ -33,9 +33,9 @@ Each program stores a **destination URL**. Tracking links redirect there and app
 
 1. Click **Deploy to Cloudflare** above (or use the [deploy button docs](https://developers.cloudflare.com/workers/platform/deploy-buttons/)).
 2. Set `APP_URL` to your hostname in Worker vars / `wrangler.toml`.
-3. Configure **path-based** Cloudflare Access on `/app*` and `/api/programs*` ([Workers + Access guide](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)).
-4. Set Worker vars `TEAM_DOMAIN` and `POLICY_AUD` from your Access application.
-5. Open `/app`, create a program (save the **convert secret** shown once), add affiliates.
+3. Open `/app` — create a program (save the **convert secret** shown once), add affiliates.
+
+**Optional (recommended for production):** Configure **path-based** Cloudflare Access on `/app*` and `/api/programs*`, then set Worker vars `TEAM_DOMAIN` and `POLICY_AUD` from your Access application ([Workers + Access guide](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)). The dashboard then requires Cloudflare Access login.
 
 **Important:** Do not enable Access on the entire Worker — `/r/*` and `/api/v1/convert` must stay public.
 
@@ -47,7 +47,7 @@ bun run db:migrate:local
 bun run dev
 ```
 
-Open http://localhost:5173 — dashboard APIs work without Access (localhost bypass).
+Open http://localhost:5173 — dashboard works immediately without Access configuration.
 
 ## Tests
 
@@ -57,7 +57,7 @@ bun run typecheck
 bun run build
 ```
 
-Integration tests cover program → affiliate → click → convert → stats, redirect security, CORS, and Access fail-closed behavior.
+Integration tests cover program → affiliate → click → convert → stats, redirect security, CORS, and optional Access behavior.
 
 ## capve.app (demo install)
 
@@ -81,7 +81,7 @@ bun run deploy
 
 ## Merchant flow
 
-1. Open `/app` (sign in via Cloudflare Access when configured)
+1. Open `/app` (works immediately after deploy; sign in via Cloudflare Access when configured)
 2. Create a program with a destination URL
 3. Add an affiliate and copy the `https://your-domain/r/{code}` link
 4. Share the link — clicks are tracked and a first-party cookie is set
