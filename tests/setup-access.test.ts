@@ -28,11 +28,14 @@ describe("access setup builders", () => {
     const destinations = buildProtectedDestinations(["capve.app", "www.capve.app"]);
     const uris = destinations.map((d) => d.uri);
 
-    expect(uris).toContain("capve.app/app");
-    expect(uris).toContain("capve.app/app/*");
-    expect(uris).toContain("capve.app/api/programs/*");
-    expect(uris).toContain("capve.app/api/auth/*");
-    expect(uris).toContain("www.capve.app/app");
+    expect(uris).toEqual([
+      "capve.app/app*",
+      "capve.app/api/programs*",
+      "capve.app/api/auth*",
+      "www.capve.app/app*",
+      "www.capve.app/api/programs*",
+      "www.capve.app/api/auth*",
+    ]);
 
     expect(uris.some((u) => u.includes("/r"))).toBe(false);
     expect(uris.some((u) => u.includes("/api/v1"))).toBe(false);
@@ -62,7 +65,7 @@ describe("access setup builders", () => {
     expect(body.domain).toBe("capve.app/app");
     expect(body.session_duration).toBe("24h");
     const destinations = body.destinations as { uri: string }[];
-    expect(destinations.length).toBe(12);
+    expect(destinations.length).toBe(6);
     const policies = body.policies as { include: unknown[] }[];
     expect(policies[0].include).toEqual([{ email_domain: { domain: "capgo.app" } }]);
   });
@@ -90,7 +93,7 @@ describe("access setup builders", () => {
     const byDestination = [
       {
         name: "Custom",
-        destinations: [{ type: "public", uri: "capve.app/app/*" }],
+        destinations: [{ type: "public", uri: "capve.app/app*" }],
         id: "app-2",
       },
     ];
