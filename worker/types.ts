@@ -2,7 +2,8 @@ export type Env = {
   DB: D1Database;
   ASSETS: Fetcher;
   APP_URL: string;
-  JWT_SECRET?: string;
+  TEAM_DOMAIN?: string;
+  POLICY_AUD?: string;
 };
 
 export type User = {

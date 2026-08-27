@@ -7,9 +7,9 @@ const PROGRAM_COLUMNS =
 export async function getUserByEmail(
   db: D1Database,
   email: string,
-): Promise<{ id: string; email: string; password_hash: string; created_at: number } | null> {
+): Promise<{ id: string; email: string; created_at: number } | null> {
   return db
-    .prepare("SELECT id, email, password_hash, created_at FROM users WHERE email = ?")
+    .prepare("SELECT id, email, created_at FROM users WHERE email = ?")
     .bind(email.toLowerCase())
     .first();
 }
@@ -23,11 +23,11 @@ export async function getUserById(db: D1Database, userId: string) {
 
 export async function createUser(
   db: D1Database,
-  user: { id: string; email: string; password_hash: string; created_at: number },
+  user: { id: string; email: string; created_at: number },
 ) {
   await db
-    .prepare("INSERT INTO users (id, email, password_hash, created_at) VALUES (?, ?, ?, ?)")
-    .bind(user.id, user.email.toLowerCase(), user.password_hash, user.created_at)
+    .prepare("INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)")
+    .bind(user.id, user.email.toLowerCase(), user.created_at)
     .run();
 }
 

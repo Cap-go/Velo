@@ -11,7 +11,7 @@ import {
 import type { Env } from "../types";
 import { apiKey, convertSecret, id, slugify } from "../lib/utils";
 import { buildTrackingUrl, parseHttpUrl } from "../lib/urls";
-import { requireUser } from "./auth";
+import { requireUser } from "../lib/access";
 
 const programs = new Hono<{ Bindings: Env }>();
 

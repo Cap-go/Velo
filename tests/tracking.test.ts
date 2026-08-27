@@ -20,23 +20,8 @@ function cookieFrom(response: Response, name: string): string | undefined {
   return undefined;
 }
 
-async function signupAndCreateProgram(email: string) {
-  const signup = await SELF.fetch("http://localhost/api/auth/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      password: "password123",
-    }),
-  });
-  expect(signup.status).toBe(201);
-  const session = cookieFrom(signup, "velo_session");
-  expect(session).toBeTruthy();
-
-  const authHeaders = {
-    "Content-Type": "application/json",
-    Cookie: `velo_session=${session}`,
-  };
+async function createProgram() {
+  const authHeaders = { "Content-Type": "application/json" };
 
   const programRes = await SELF.fetch("http://localhost/api/programs", {
     method: "POST",
@@ -53,7 +38,7 @@ async function signupAndCreateProgram(email: string) {
   }>(programRes);
   expect(convert_secret).toMatch(/^sk_/);
 
-  return { session: session!, authHeaders, program, convert_secret };
+  return { authHeaders, program, convert_secret };
 }
 
 function convertHeaders(secret: string) {
@@ -81,9 +66,8 @@ describe("affiliate tracking flow", () => {
     `);
   });
 
-  it("signup → program → affiliate → click → convert → stats", async () => {
-    const { session, authHeaders, program, convert_secret } =
-      await signupAndCreateProgram("founder@example.com");
+  it("program → affiliate → click → convert → stats", async () => {
+    const { authHeaders, program, convert_secret } = await createProgram();
 
     const affiliateRes = await SELF.fetch(
       `http://localhost/api/programs/${program.id}/affiliates`,
@@ -140,7 +124,7 @@ describe("affiliate tracking flow", () => {
 
     const statsRes = await SELF.fetch(
       `http://localhost/api/programs/${program.id}/stats`,
-      { headers: { Cookie: `velo_session=${session}` } },
+      { headers: authHeaders },
     );
     expect(statsRes.status).toBe(200);
     const stats = await json<{
@@ -163,8 +147,7 @@ describe("affiliate tracking flow", () => {
   });
 
   it("dedupes conversions by program and order id across affiliates", async () => {
-    const { authHeaders, program, convert_secret } =
-      await signupAndCreateProgram("dedupe@example.com");
+    const { authHeaders, program, convert_secret } = await createProgram();
 
     const firstAffiliate = await json<{ affiliate: { code: string } }>(
       await SELF.fetch(`http://localhost/api/programs/${program.id}/affiliates`, {
@@ -207,7 +190,7 @@ describe("affiliate tracking flow", () => {
   });
 
   it("rejects off-host redirect overrides", async () => {
-    const { authHeaders, program } = await signupAndCreateProgram("security@example.com");
+    const { authHeaders, program } = await createProgram();
 
     const affiliateRes = await SELF.fetch(
       `http://localhost/api/programs/${program.id}/affiliates`,
@@ -234,7 +217,7 @@ describe("affiliate tracking flow", () => {
   });
 
   it("allows same-host deep links in url override", async () => {
-    const { authHeaders, program } = await signupAndCreateProgram("deeplink@example.com");
+    const { authHeaders, program } = await createProgram();
 
     const affiliateRes = await SELF.fetch(
       `http://localhost/api/programs/${program.id}/affiliates`,

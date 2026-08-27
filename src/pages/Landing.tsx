@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { Shell } from "../components/ui";
-import { PRODUCTION_APP_URL } from "../lib/constants";
+import {
+  DEPLOY_BUTTON_IMAGE,
+  DEPLOY_BUTTON_URL,
+  GITHUB_REPO_URL,
+  PRODUCTION_APP_URL,
+} from "../lib/constants";
 
 const features = [
   {
@@ -12,9 +17,16 @@ const features = [
     body: "Record sales with a tiny JS snippet or a simple POST API. Order IDs are idempotent.",
   },
   {
-    title: "Clear dashboard",
-    body: "See clicks, conversions, revenue, and conversion rate per affiliate in one place.",
+    title: "Self-hosted dashboard",
+    body: "Run on your Cloudflare account. Protect the merchant dashboard with Cloudflare Access.",
   },
+];
+
+const installSteps = [
+  "Click Deploy to Cloudflare and provision the Worker + D1 on your account.",
+  "Set APP_URL to your custom domain (or workers.dev URL) in wrangler vars.",
+  "In Zero Trust → Access, protect /app and /api/programs* — leave /r/* and /api/v1/convert public.",
+  "Open /app, create a program, save the convert secret, and add affiliates.",
 ];
 
 export function LandingPage() {
@@ -22,11 +34,11 @@ export function LandingPage() {
     <Shell
       cta={
         <>
-          <Link className="btn btn-ghost" to="/login">
-            Log in
-          </Link>
-          <Link className="btn btn-primary" to="/signup">
-            Start free
+          <a className="btn btn-ghost" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+          <Link className="btn btn-primary" to="/app">
+            Dashboard
           </Link>
         </>
       }
@@ -35,21 +47,26 @@ export function LandingPage() {
         <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="mb-4 inline-flex rounded-full bg-[var(--velo-accent-soft)] px-3 py-1 text-sm font-semibold text-[var(--velo-accent)]">
-              Affiliate tracking for indie SaaS
+              Open-source · self-hosted
             </p>
             <h1 className="max-w-2xl text-5xl font-bold leading-tight tracking-tight">
-              Launch an affiliate program without building attribution yourself.
+              Affiliate tracking you deploy on your own Cloudflare account.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-[var(--velo-muted)]">
-              Velo gives merchants a dashboard, affiliates unique links, and a reliable
-              click-to-conversion path you can ship this week.
+              Velo is a lightweight affiliate tracker for indie SaaS. No SaaS signup, no pricing
+              tiers — fork or one-click deploy, then protect your dashboard with Cloudflare Access.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link className="btn btn-primary" to="/signup">
-                Create your program
-              </Link>
-              <a className="btn btn-secondary" href="#pricing">
-                See pricing
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <a href={DEPLOY_BUTTON_URL} target="_blank" rel="noreferrer">
+                <img
+                  src={DEPLOY_BUTTON_IMAGE}
+                  alt="Deploy to Cloudflare Workers"
+                  width={166}
+                  height={32}
+                />
+              </a>
+              <a className="btn btn-secondary" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+                View source
               </a>
             </div>
           </div>
@@ -58,19 +75,20 @@ export function LandingPage() {
             <p className="text-sm font-semibold text-[var(--velo-muted)]">Live flow</p>
             <ol className="mt-4 space-y-4 text-sm leading-relaxed">
               <li>
-                <strong>1.</strong> Merchant creates a program and adds affiliates.
+                <strong>1.</strong> Deploy Velo to your Cloudflare account.
               </li>
               <li>
-                <strong>2.</strong> Affiliate shares{" "}
+                <strong>2.</strong> Create a program and add affiliates in{" "}
+                <span className="mono rounded bg-[var(--velo-accent-soft)] px-2 py-1">/app</span>
+              </li>
+              <li>
+                <strong>3.</strong> Affiliate shares{" "}
                 <span className="mono rounded bg-[var(--velo-accent-soft)] px-2 py-1">
-                  {PRODUCTION_APP_URL}/r/code
+                  your-domain/r/code
                 </span>
               </li>
               <li>
-                <strong>3.</strong> Click sets cookie + records the visit.
-              </li>
-              <li>
-                <strong>4.</strong> Checkout posts conversion → dashboard updates.
+                <strong>4.</strong> Click records visit → checkout posts conversion → stats update.
               </li>
             </ol>
           </div>
@@ -88,43 +106,54 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="pricing" className="mx-auto max-w-6xl px-6 py-12">
+      <section id="install" className="mx-auto max-w-6xl px-6 py-12">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold">Simple pricing</h2>
+          <h2 className="text-3xl font-bold">Install on Cloudflare</h2>
           <p className="mt-2 text-[var(--velo-muted)]">
-            Start free while you validate. Upgrade when affiliates drive revenue.
+            One-click deploy provisions the Worker and D1 database on your account. You own the
+            data and the bill.
           </p>
         </div>
-        <div className="grid gap-5 md:grid-cols-2">
-          <article className="card p-6">
-            <p className="text-sm font-semibold text-[var(--velo-muted)]">Free</p>
-            <p className="mt-2 text-4xl font-bold">$0</p>
-            <ul className="mt-5 space-y-2 text-[var(--velo-muted)]">
-              <li>1 program</li>
-              <li>Up to 5 affiliates</li>
-              <li>Full click + conversion tracking</li>
-            </ul>
-            <Link className="btn btn-secondary mt-6" to="/signup">
-              Start free
-            </Link>
-          </article>
-          <article className="card border-[var(--velo-accent)] p-6">
-            <p className="text-sm font-semibold text-[var(--velo-accent)]">Pro</p>
-            <p className="mt-2 text-4xl font-bold">$19/mo</p>
-            <ul className="mt-5 space-y-2 text-[var(--velo-muted)]">
-              <li>Unlimited programs & affiliates</li>
-              <li>Priority support</li>
-              <li>Export-ready stats (coming soon)</li>
-            </ul>
-            <Link className="btn btn-primary mt-6" to="/signup">
-              Start free, upgrade later
-            </Link>
-          </article>
+        <div className="card p-6">
+          <a href={DEPLOY_BUTTON_URL} target="_blank" rel="noreferrer">
+            <img
+              src={DEPLOY_BUTTON_IMAGE}
+              alt="Deploy to Cloudflare Workers"
+              width={166}
+              height={32}
+            />
+          </a>
+          <ol className="mt-6 space-y-3 text-[var(--velo-muted)]">
+            {installSteps.map((step, index) => (
+              <li key={step}>
+                <strong>{index + 1}.</strong> {step}
+              </li>
+            ))}
+          </ol>
+          <p className="mt-6 text-sm text-[var(--velo-muted)]">
+            After deploy, set <span className="mono">TEAM_DOMAIN</span> and{" "}
+            <span className="mono">POLICY_AUD</span> on the Worker for API auth. Path-based Access
+            on <span className="mono">/app*</span> and <span className="mono">/api/programs*</span>{" "}
+            only — do not wrap the whole Worker or tracking breaks. See{" "}
+            <a
+              className="underline"
+              href="https://developers.cloudflare.com/workers/configuration/cloudflare-access/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Cloudflare Access for Workers
+            </a>
+            .
+          </p>
         </div>
       </section>
 
       <footer className="mx-auto max-w-6xl px-6 py-10 text-sm text-[var(--velo-muted)]">
-        Velo — affiliate tracking at{" "}
+        Velo — open source at{" "}
+        <a className="underline" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+          github.com/Cap-go/Velo
+        </a>
+        . Demo install:{" "}
         <a className="underline" href={PRODUCTION_APP_URL}>
           capve.app
         </a>

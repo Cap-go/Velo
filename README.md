@@ -1,34 +1,43 @@
 # Velo
 
-Simple self-serve affiliate tracking for indie and SaaS founders.
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Velo)
 
-**Requirements & agent guide:** [REQUIREMENTS.md](./REQUIREMENTS.md) · [AGENTS.md](./AGENTS.md)
+Open-source, self-hosted affiliate tracking for indie and SaaS founders. Deploy on your Cloudflare account — no SaaS signup, no pricing tiers.
 
-Velo lets merchants create affiliate programs, give partners unique tracking links, record click-throughs with first-party cookies, and attribute conversions via a JS snippet or POST API.
+**Repo:** https://github.com/Cap-go/Velo · **Requirements:** [REQUIREMENTS.md](./REQUIREMENTS.md) · **Agents:** [AGENTS.md](./AGENTS.md)
+
+Velo lets you run affiliate programs on infrastructure you control: unique tracking links, click-through cookies, and server-side conversion attribution.
 
 ## Stack
 
-- **Frontend**: React + Vite + Tailwind (marketing site + dashboard)
+- **Frontend**: React + Vite + Tailwind (homepage + dashboard)
 - **Backend**: Cloudflare Worker (Hono)
 - **Database**: Cloudflare D1
-- **Deploy**: One Worker project with static assets (`wrangler.toml`)
+- **Auth**: Cloudflare Access (Zero Trust) for `/app` and program APIs
+- **Deploy**: One Worker + static assets (`wrangler.toml`)
 
-Production URL: **https://capve.app**
+## Routes
 
-Routes:
+| Path | Access |
+| --- | --- |
+| `/` | Public — project homepage + install instructions |
+| `/app` | Cloudflare Access (production) |
+| `/r/:code` | Public — affiliate redirect |
+| `/api/v1/convert` | Public — conversion API (`X-Program-Secret`) |
+| `/api/v1/snippet` | Public — browser attribution snippet |
+| `/api/programs/*` | Cloudflare Access (production) |
 
-- `/` — marketing landing page
-- `/app` — merchant dashboard
-- `/login`, `/signup` — auth
-- `/r/:code` — affiliate redirect to the program destination (+ optional same-host `?url=`)
-- `/api/v1/convert` — conversion tracking (`X-Program-Secret` + `affiliate_code`, server-side)
+Each program stores a **destination URL**. Tracking links redirect there and append `velo_ref=<code>` for merchant-site attribution.
 
-Each program stores a **destination URL**. Tracking links redirect there and append `velo_ref=<code>` so merchant checkout can attribute cross-domain conversions via `localStorage` (see `/api/v1/snippet`).
+## Quick install
 
-## Prerequisites
+1. Click **Deploy to Cloudflare** above (or use the [deploy button docs](https://developers.cloudflare.com/workers/platform/deploy-buttons/)).
+2. Set `APP_URL` to your hostname in Worker vars / `wrangler.toml`.
+3. Configure **path-based** Cloudflare Access on `/app*` and `/api/programs*` ([Workers + Access guide](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)).
+4. Set Worker vars `TEAM_DOMAIN` and `POLICY_AUD` from your Access application.
+5. Open `/app`, create a program (save the **convert secret** shown once), add affiliates.
 
-- [Bun](https://bun.sh) (recommended) or Node 20+
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) for local D1 and deploy
+**Important:** Do not enable Access on the entire Worker — `/r/*` and `/api/v1/convert` must stay public.
 
 ## Local development
 
@@ -38,98 +47,55 @@ bun run db:migrate:local
 bun run dev
 ```
 
-Open http://localhost:5173
-
-The Vite dev server runs the Worker and frontend together via `@cloudflare/vite-plugin`.
-
-Optional local secrets (create `.dev.vars`, never commit):
-
-```bash
-JWT_SECRET=your-local-secret
-```
+Open http://localhost:5173 — dashboard APIs work without Access (localhost bypass).
 
 ## Tests
 
-Integration tests exercise the full tracking path using `@cloudflare/vitest-pool-workers`:
-
 ```bash
 bun run test
+bun run typecheck
+bun run build
 ```
 
-Coverage:
+Integration tests cover program → affiliate → click → convert → stats, redirect security, CORS, and Access fail-closed behavior.
 
-1. Sign up merchant
-2. Create program
-3. Create affiliate + tracking link
-4. Hit redirect → records click + sets `_velo_ref` cookie
-5. POST conversion → attributes to affiliate
-6. Verify dashboard stats (clicks, conversions, revenue, conversion rate)
-7. Verify idempotent conversion by order id
+## capve.app (demo install)
 
-## Production deploy (Cloudflare)
+https://capve.app is this project’s public homepage and demo deployment on the Digital Shift Cloudflare account. Other users deploy their own copies via the button above.
 
-Production URL: **https://capve.app** (apex; optional **www.capve.app** → apex redirect in Cloudflare).
+| Resource | Value |
+| --- | --- |
+| Worker | `velo` |
+| D1 | `velo-db` — `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` |
+| Account | `9ee3d7479a3c359681e3fab2c8cb22c0` |
 
-### 1. D1 database
-
-D1 **`velo-db`** already exists on the Digital shift account (`9ee3d7479a3c359681e3fab2c8cb22c0`). This repo is wired to database id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` in `wrangler.toml`.
-
-Migrations run automatically on deploy. To apply manually:
-
-```bash
-bunx wrangler d1 migrations apply velo-db --remote
-```
-
-### 2. GitHub secrets
-
-| Secret | Where | Status |
-| --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cap-go **org** secrets | Already set (same as other Cap-go deploys) |
-| `JWT_SECRET` | **Cap-go/Velo** repo secret | Set — session signing for production auth |
-
-The deploy workflow reads these via `${{ secrets.* }}`; org secrets are inherited automatically. **Do not duplicate Cloudflare secrets on the Velo repo.**
-
-### 3. Deploy
-
-Merging to `main` runs CI first; deploy runs only after CI succeeds on that commit.
+CI deploys on merge to `main` (after tests pass). Build uses `CLOUDFLARE_ENV=production` so custom domains stay in `dist/velo/wrangler.json`.
 
 Manual deploy:
 
 ```bash
 bun run build
-bunx wrangler d1 migrations apply velo-db --remote
-bun run deploy   # deploys to https://capve.app
+bunx wrangler d1 migrations apply velo-db --remote --env production
+bun run deploy
 ```
-
-Attach **`capve.app`** (and optionally **`www.capve.app`** → apex redirect) to worker **`velo`** in the Cloudflare dashboard if not already routed.
 
 ## Merchant flow
 
-1. Sign up at `/signup`
-2. Create a program in `/app`
-3. Add an affiliate and copy the generated `https://capve.app/r/{code}` link
+1. Open `/app` (sign in via Cloudflare Access when configured)
+2. Create a program with a destination URL
+3. Add an affiliate and copy the `https://your-domain/r/{code}` link
 4. Share the link — clicks are tracked and a first-party cookie is set
 5. On conversion, POST from your **server** to `/api/v1/convert` with `X-Program-Secret` and `{ order_id, amount, affiliate_code }`
 
-Example server-side conversion request:
-
 ```bash
-curl -X POST https://capve.app/api/v1/convert \
+curl -X POST https://your-domain/api/v1/convert \
   -H "Content-Type: application/json" \
   -H "X-Program-Secret: sk_..." \
   -d '{"order_id":"order_123","amount":49,"affiliate_code":"abc123"}'
 ```
 
-The browser snippet at `https://capve.app/api/v1/snippet` only stores `velo_ref` from the query string into `localStorage`.
-
-## Pricing (product)
-
-- **Free**: 1 program, up to 5 affiliates (enforcement can be added later)
-- **Pro ($19/mo)**: unlimited programs/affiliates (billing not wired in MVP)
-
-Tracking works without Stripe in this first version.
+The browser snippet at `/api/v1/snippet` stores `velo_ref` from the query string into `localStorage`.
 
 ## License
 
-Proprietary — Cap-go / Martin Donadieu
+Open source — see [github.com/Cap-go/Velo](https://github.com/Cap-go/Velo).
