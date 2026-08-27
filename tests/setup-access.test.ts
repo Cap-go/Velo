@@ -62,7 +62,7 @@ describe("access setup builders", () => {
   it("builds access application body for self-hosted paths", () => {
     const body = buildAccessApplicationBody("capve.app", [], ["capgo.app"]);
     expect(body.type).toBe("self_hosted");
-    expect(body.domain).toBe("capve.app/app");
+    expect(body.domain).toBe("capve.app/app*");
     expect(body.session_duration).toBe("24h");
     const destinations = body.destinations as { uri: string }[];
     expect(destinations.length).toBe(6);
