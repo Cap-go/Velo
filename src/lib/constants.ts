@@ -1,6 +1,7 @@
-export const GITHUB_REPO_URL = "https://github.com/Cap-go/Velo";
+export const BRAND_NAME = "Capve";
+export const GITHUB_REPO_URL = "https://github.com/Cap-go/Capve";
 export const DEPLOY_BUTTON_URL =
-  "https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Velo";
+  "https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Capve";
 export const DEPLOY_BUTTON_IMAGE = "https://deploy.workers.cloudflare.com/button";
 export const PRODUCTION_APP_URL = "https://capve.app";
 

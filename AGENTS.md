@@ -1,8 +1,8 @@
-# AGENTS.md — Velo
+# AGENTS.md — Capve
 
-Read **[REQUIREMENTS.md](./REQUIREMENTS.md)** first. It defines what Velo is, what “done” means, and what is out of scope.
+Read **[REQUIREMENTS.md](./REQUIREMENTS.md)** first. It defines what Capve is, what “done” means, and what is out of scope.
 
-Velo = **open-source, self-hosted** affiliate tracker for indie/SaaS. **Not** Capgo Affonso. **Not** a SaaS — no pricing, no email/password login.
+Capve = **open-source, self-hosted** affiliate tracker for indie/SaaS. **Not** Capgo Affonso. **Not** a SaaS — no pricing, no email/password login.
 
 ## Repo map
 
@@ -62,11 +62,11 @@ Local dev skips Access when `APP_URL` is localhost.
 - Run `bun run test` and keep CI green
 - Use version tags for GitHub Actions, not SHA pins
 - Do not commit secrets or placeholder D1 IDs
-- Do not add Cloudflare secrets to the Velo repo — they live at Cap-go org level
+- Do not add Cloudflare secrets to the Capve repo — they live at Cap-go org level
 - Do **not** split landing vs dashboard onto separate hostnames unless explicitly requested
 
 ## PR workflow
 
-- Branch: `cursor/<name>-8e4f`
+- Branch: `cursor/<name>-1798`
 - Open PR → wait for CI → fix review comments → do not merge unless asked
 - Do not deploy to production yourself; document what Martin must do

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "velo",
+      "name": "capve",
       "dependencies": {
         "hono": "^4.9.6",
         "jose": "^6.1.0",

@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { BRAND_NAME } from "../lib/constants";
 
 export function Shell({
   children,
@@ -11,8 +12,16 @@ export function Shell({
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link to="/" className="text-xl font-bold tracking-tight">
-          Velo
+        <Link to="/" className="flex items-center gap-2.5 text-xl font-bold tracking-tight">
+          <img
+            src="/capve-logo.png"
+            alt=""
+            className="h-9 w-9 rounded-lg object-cover"
+            width={36}
+            height={36}
+            aria-hidden
+          />
+          {BRAND_NAME}
         </Link>
         <nav className="flex items-center gap-3">{cta}</nav>
       </header>
