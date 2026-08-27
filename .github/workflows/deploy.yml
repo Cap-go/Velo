@@ -62,6 +62,6 @@ jobs:
     uses: ./.github/workflows/setup-access.yml
     with:
       app_host: capve.app
-      allowed_emails: ${{ vars.ACCESS_ALLOWED_EMAILS || secrets.ACCESS_ALLOWED_EMAILS || '' }}
-      allowed_domains: ${{ vars.ACCESS_ALLOWED_DOMAINS || secrets.ACCESS_ALLOWED_DOMAINS || '' }}
+      allowed_emails: ${{ vars.ACCESS_ALLOWED_EMAILS }}
+      allowed_domains: ${{ vars.ACCESS_ALLOWED_DOMAINS }}
     secrets: inherit
