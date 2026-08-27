@@ -21,6 +21,7 @@ jobs:
       deployments: write
     env:
       CLOUDFLARE_ACCOUNT_ID: 9ee3d7479a3c359681e3fab2c8cb22c0
+      CLOUDFLARE_ENV: production
     steps:
       - uses: actions/checkout@v4
         with:

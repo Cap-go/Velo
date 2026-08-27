@@ -18,7 +18,14 @@ migrations_dir = "migrations"
 APP_URL = "http://localhost:5173"
 
 [env.production]
+# Keep worker name "velo" (wrangler defaults to velo-production otherwise).
+name = "velo"
 vars = { APP_URL = "https://capve.app" }
+
+# Custom domains for production. With @cloudflare/vite-plugin, routes under
+# [env.production] are copied into dist/velo/wrangler.json only when the build
+# sets CLOUDFLARE_ENV=production (see deploy workflow / package.json "deploy").
+# Requires capve.app zone in the Cloudflare account for DNS to be provisioned.
 
 [[env.production.routes]]
 pattern = "capve.app"
