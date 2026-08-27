@@ -159,13 +159,12 @@ export function findVeloAccessApp(apps, appHost) {
  * @param {string} appHost
  */
 export function buildAccessApplicationBody(appHost, emails, domains) {
-  const hosts = apexHostAliases(appHost);
-  const primaryHost = hosts[0];
+  const host = appHost.trim().toLowerCase();
   return {
     name: APP_NAME,
     type: "self_hosted",
-    domain: `${primaryHost}/app*`,
-    destinations: buildProtectedDestinations(hosts),
+    domain: `${host}/app*`,
+    destinations: buildProtectedDestinations([host]),
     session_duration: "24h",
     app_launcher_visible: true,
     policies: [buildAllowPolicy(emails, domains)],
