@@ -44,8 +44,8 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: 9ee3d7479a3c359681e3fab2c8cb22c0
       APP_HOST: ${{ inputs.app_host || 'capve.app' }}
-      ACCESS_ALLOWED_EMAILS: ${{ inputs.allowed_emails }}
-      ACCESS_ALLOWED_DOMAINS: ${{ inputs.allowed_domains }}
+      ACCESS_ALLOWED_EMAILS: ${{ inputs.allowed_emails || vars.ACCESS_ALLOWED_EMAILS || secrets.ACCESS_ALLOWED_EMAILS }}
+      ACCESS_ALLOWED_DOMAINS: ${{ inputs.allowed_domains || vars.ACCESS_ALLOWED_DOMAINS || secrets.ACCESS_ALLOWED_DOMAINS }}
       APPLY_VARS: "1"
       WORKER_NAME: velo
     steps:
