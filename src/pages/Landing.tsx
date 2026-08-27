@@ -18,15 +18,15 @@ const features = [
   },
   {
     title: "Self-hosted dashboard",
-    body: "Run on your Cloudflare account. Protect the merchant dashboard with Cloudflare Access.",
+    body: "Run on your Cloudflare account. Open /app right after deploy — add Cloudflare Access later for production hardening.",
   },
 ];
 
 const installSteps = [
   "Click Deploy to Cloudflare and provision the Worker + D1 on your account.",
   "Set APP_URL to your custom domain (or workers.dev URL) in wrangler vars.",
-  "In Zero Trust → Access, protect /app and /api/programs* — leave /r/* and /api/v1/convert public.",
   "Open /app, create a program, save the convert secret, and add affiliates.",
+  "Optional: protect /app and /api/programs* with Cloudflare Access, then set TEAM_DOMAIN + POLICY_AUD.",
 ];
 
 export function LandingPage() {
@@ -54,7 +54,7 @@ export function LandingPage() {
             </h1>
             <p className="mt-5 max-w-xl text-lg text-[var(--velo-muted)]">
               Velo is a lightweight affiliate tracker for indie SaaS. No SaaS signup, no pricing
-              tiers — fork or one-click deploy, then protect your dashboard with Cloudflare Access.
+              tiers — one-click deploy, open /app, and start tracking affiliates.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <a href={DEPLOY_BUTTON_URL} target="_blank" rel="noreferrer">
@@ -131,10 +131,11 @@ export function LandingPage() {
             ))}
           </ol>
           <p className="mt-6 text-sm text-[var(--velo-muted)]">
-            After deploy, set <span className="mono">TEAM_DOMAIN</span> and{" "}
-            <span className="mono">POLICY_AUD</span> on the Worker for API auth. Path-based Access
-            on <span className="mono">/app*</span> and <span className="mono">/api/programs*</span>{" "}
-            only — do not wrap the whole Worker or tracking breaks. See{" "}
+            Cloudflare Access is optional but recommended for production. When configured, add
+            path-based Access on <span className="mono">/app*</span> and{" "}
+            <span className="mono">/api/programs*</span> only (not the whole Worker), then set{" "}
+            <span className="mono">TEAM_DOMAIN</span> and <span className="mono">POLICY_AUD</span>{" "}
+            on the Worker. See{" "}
             <a
               className="underline"
               href="https://developers.cloudflare.com/workers/configuration/cloudflare-access/"

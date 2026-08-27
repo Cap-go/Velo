@@ -4,6 +4,7 @@ import { createUser, getUserByEmail } from "../db/queries";
 import { id } from "./utils";
 
 const DEV_OPERATOR_EMAIL = "operator@localhost";
+const INSTANCE_OPERATOR_EMAIL = "operator@instance";
 
 function isLocalDev(env: Env): boolean {
   try {
@@ -14,8 +15,12 @@ function isLocalDev(env: Env): boolean {
   }
 }
 
-function accessConfigured(env: Env): boolean {
+export function accessConfigured(env: Env): boolean {
   return Boolean(env.TEAM_DOMAIN && env.POLICY_AUD);
+}
+
+function instanceOperatorEmail(env: Env): string {
+  return isLocalDev(env) ? DEV_OPERATOR_EMAIL : INSTANCE_OPERATOR_EMAIL;
 }
 
 const jwksByTeam = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
@@ -66,12 +71,8 @@ export async function resolveOperator(c: {
 }): Promise<User | null> {
   const { env, req } = c;
 
-  if (isLocalDev(env)) {
-    return getOrCreateUser(env.DB, DEV_OPERATOR_EMAIL);
-  }
-
   if (!accessConfigured(env)) {
-    return null;
+    return getOrCreateUser(env.DB, instanceOperatorEmail(env));
   }
 
   const token = req.header("cf-access-jwt-assertion");
