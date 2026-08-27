@@ -2,7 +2,6 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import {
   APP_NAME,
-  apexHostAliases,
   buildAccessApplicationBody,
   buildAllowPolicy,
   extractPolicyAud,
@@ -306,7 +305,7 @@ async function main() {
   console.log(`  app_id: ${app.id}`);
   console.log(`  TEAM_DOMAIN: ${teamDomain}`);
   console.log(`  POLICY_AUD: ${policyAud}`);
-  console.log(`  protected hosts: ${apexHostAliases(appHost).join(", ")}`);
+  console.log(`  protected host: ${appHost}`);
 }
 
 main().catch((error) => {
