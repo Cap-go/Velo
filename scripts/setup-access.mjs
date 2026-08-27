@@ -240,7 +240,6 @@ function applyWorkerVars(params) {
     "--name",
     params.workerName,
     "--keep-vars",
-    "-y",
     "--var",
     `APP_URL:${appUrl}`,
     "--var",
