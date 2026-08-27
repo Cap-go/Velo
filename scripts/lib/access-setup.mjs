@@ -164,7 +164,7 @@ export function buildAccessApplicationBody(appHost, emails, domains) {
   return {
     name: APP_NAME,
     type: "self_hosted",
-    domain: `${primaryHost}/app`,
+    domain: `${primaryHost}/app*`,
     destinations: buildProtectedDestinations(hosts),
     session_duration: "24h",
     app_launcher_visible: true,
