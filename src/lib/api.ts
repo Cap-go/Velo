@@ -55,17 +55,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   me: () => request<{ user: User | null }>("/api/auth/me"),
-  signup: (email: string, password: string) =>
-    request<{ user: User }>("/api/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-  login: (email: string, password: string) =>
-    request<{ user: User }>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-  logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   programs: () => request<{ programs: Program[] }>("/api/programs"),
   createProgram: (name: string, destinationUrl: string) =>
     request<{ program: Program; convert_secret: string }>("/api/programs", {

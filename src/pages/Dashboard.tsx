@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ErrorBox, Field, Shell } from "../components/ui";
 import {
   api,
@@ -13,7 +13,7 @@ import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
 export function DashboardPage() {
-  const { user, loading, setUser } = useAuth();
+  const { user, loading } = useAuth();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<ProgramStats | null>(null);
@@ -75,7 +75,26 @@ export function DashboardPage() {
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    return (
+      <Shell>
+        <div className="mx-auto max-w-2xl px-6 py-16">
+          <h1 className="text-2xl font-bold">Dashboard unavailable</h1>
+          <p className="mt-3 text-[var(--velo-muted)]">
+            Configure Cloudflare Access on <span className="mono">/app</span> and{" "}
+            <span className="mono">/api/programs*</span>, then set{" "}
+            <span className="mono">TEAM_DOMAIN</span> and <span className="mono">POLICY_AUD</span>{" "}
+            on the Worker. Tracking routes stay public.
+          </p>
+          <p className="mt-4 text-sm text-[var(--velo-muted)]">
+            <Link className="underline" to="/">
+              Back to install instructions
+            </Link>
+          </p>
+        </div>
+      </Shell>
+    );
+  }
 
   async function createProgram(e: FormEvent) {
     e.preventDefault();
@@ -131,23 +150,13 @@ export function DashboardPage() {
     }
   }
 
-  async function logout() {
-    await api.logout();
-    setUser(null);
-  }
-
   const selectedProgram = programs.find((p) => p.id === selectedId) ?? stats?.program;
   const visibleStats = stats && stats.program.id === selectedId ? stats : null;
 
   return (
     <Shell
       cta={
-        <>
-          <span className="hidden text-sm text-[var(--velo-muted)] sm:inline">{user.email}</span>
-          <button className="btn btn-ghost" onClick={logout} type="button">
-            Log out
-          </button>
-        </>
+        <span className="hidden text-sm text-[var(--velo-muted)] sm:inline">{user.email}</span>
       }
     >
       <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
