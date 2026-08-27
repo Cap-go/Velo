@@ -49,3 +49,19 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 9ee3d7479a3c359681e3fab2c8cb22c0
           command: deploy --env production --var APP_URL:https://capve.app
+
+  configure-access:
+    needs: deploy
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    uses: ./.github/workflows/setup-access.yml
+    with:
+      app_host: capve.app
+      allowed_emails: ${{ vars.ACCESS_ALLOWED_EMAILS || secrets.ACCESS_ALLOWED_EMAILS || '' }}
+      allowed_domains: ${{ vars.ACCESS_ALLOWED_DOMAINS || secrets.ACCESS_ALLOWED_DOMAINS || '' }}
+    secrets: inherit

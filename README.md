@@ -35,9 +35,20 @@ Each program stores a **destination URL**. Tracking links redirect there and app
 2. Set `APP_URL` to your hostname in Worker vars / `wrangler.toml`.
 3. Open `/app` — create a program (save the **convert secret** shown once), add affiliates.
 
-**Optional (recommended for production):** Configure **path-based** Cloudflare Access on `/app*` and `/api/programs*`, then set Worker vars `TEAM_DOMAIN` and `POLICY_AUD` from your Access application ([Workers + Access guide](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)). The dashboard then requires Cloudflare Access login.
+**Production hardening:** Run `bun run setup-access` to create path-based Cloudflare Access on `/app*`, `/api/programs*`, and `/api/auth*` (not the whole Worker), then set Worker vars `TEAM_DOMAIN` and `POLICY_AUD` so the dashboard enforces Access JWTs:
 
-**Important:** Do not enable Access on the entire Worker — `/r/*` and `/api/v1/convert` must stay public.
+```bash
+export CLOUDFLARE_API_TOKEN=...   # needs Access: Apps and Policies Write + Workers write
+export CLOUDFLARE_ACCOUNT_ID=...
+export APP_HOST=your-domain.com
+# optional: export ACCESS_ALLOWED_EMAILS=you@example.com
+# optional: export ACCESS_ALLOWED_DOMAINS=example.com
+bun run setup-access
+```
+
+The **Setup Cloudflare Access** GitHub Action (`.github/workflows/setup-access.yml`) runs the same script after each production deploy on this repo. You can also dispatch it manually from the Actions tab.
+
+**Important:** Do not enable Access on the entire Worker — `/r/*`, `/api/v1/convert`, `/api/v1/snippet`, and `/api/health` must stay public.
 
 ## Local development
 

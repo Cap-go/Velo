@@ -43,7 +43,7 @@ There is **no SaaS signup**, **no email/password login**, and **no pricing**.
 
 - **One-click:** [Deploy to Cloudflare](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Velo) provisions Worker + D1 on the visitor’s account.
 - **This repo’s CI** deploys to `capve.app` (Digital Shift demo/homepage install) using the existing D1 id in `wrangler.toml`.
-- After deploy, configure **path-based** Zero Trust Access on `/app*` and `/api/programs*` (not the whole Worker).
+- After deploy, run `bun run setup-access` (or the **Setup Cloudflare Access** GitHub Action) to apply path-based Zero Trust Access on `/app*`, `/api/programs*`, and `/api/auth*` — not the whole Worker. The script writes `TEAM_DOMAIN` and `POLICY_AUD` to the Worker so JWT verification is enforced.
 
 ### Tests (`bun run test`)
 
@@ -53,7 +53,7 @@ Must pass in CI:
 2. **Redirect rejection**: off-host `?url=` and `javascript:` schemes return 400
 3. **`velo_ref`**: 302 `Location` includes `velo_ref=<code>`
 4. **CORS**: OPTIONS preflight on `/api/v1/convert`
-5. **Access fail-closed**: dashboard APIs return 401 when `APP_URL` is not localhost and Access vars are unset
+5. **Access optional**: without `TEAM_DOMAIN` + `POLICY_AUD`, dashboard APIs use the instance owner (`operator@instance` on production); with vars set (via `setup-access`), APIs require a valid Access JWT
 
 ### CI / deploy
 
@@ -84,7 +84,7 @@ Set on the Worker (not required for landing/tracking until you want `/app`):
 | `TEAM_DOMAIN` | `https://<team>.cloudflareaccess.com` |
 | `POLICY_AUD` | Access application audience tag |
 
-`JWT_SECRET` is no longer used. `/app` may return 403 until Access is configured — that is expected.
+`JWT_SECRET` is no longer used. Until `setup-access` sets Access vars, `/app` works via the instance owner bypass; after vars are applied, Cloudflare Access login is required.
 
 Attach **`capve.app`** to worker **`velo`**. Optional: redirect **`www.capve.app`** → apex.
 
