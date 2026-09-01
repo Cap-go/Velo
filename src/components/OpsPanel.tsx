@@ -1,0 +1,302 @@
+import { FormEvent, useEffect, useState } from "react";
+import { api, type EntityNote, type TeamMember, type TeamRole, type Trigger } from "../lib/api";
+import { ErrorBox, Field } from "./ui";
+
+export function OpsPanel({ role }: { role: TeamRole }) {
+  const [tab, setTab] = useState<"team" | "triggers">("team");
+
+  return (
+    <div className="space-y-6">
+      <nav className="flex flex-wrap gap-2">
+        <button
+          className={`btn text-sm ${tab === "team" ? "btn-primary" : "btn-secondary"}`}
+          onClick={() => setTab("team")}
+          type="button"
+        >
+          Team
+        </button>
+        <button
+          className={`btn text-sm ${tab === "triggers" ? "btn-primary" : "btn-secondary"}`}
+          onClick={() => setTab("triggers")}
+          type="button"
+        >
+          Triggers
+        </button>
+      </nav>
+      {tab === "team" ? <TeamPanel role={role} /> : <TriggersPanel />}
+    </div>
+  );
+}
+
+function TeamPanel({ role }: { role: TeamRole }) {
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [email, setEmail] = useState("");
+  const [memberRole, setMemberRole] = useState<"admin" | "viewer">("viewer");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.team().then(({ members }) => setMembers(members)).catch(() => {});
+  }, []);
+
+  async function invite(e: FormEvent) {
+    e.preventDefault();
+    if (role !== "owner") return;
+    setBusy(true);
+    setError("");
+    try {
+      const { member } = await api.inviteMember(email, memberRole);
+      setMembers((prev) => [...prev, member]);
+      setEmail("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not invite member");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(memberId: string) {
+    setBusy(true);
+    try {
+      await api.removeMember(memberId);
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove member");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <h2 className="font-semibold">Team members</h2>
+      <p className="mt-1 text-sm text-[var(--velo-muted)]">
+        Your role: <strong>{role}</strong>. Viewers can read dashboards; admins can edit.
+      </p>
+      <ErrorBox message={error} />
+      <table className="table mt-4">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            {role === "owner" && <th />}
+          </tr>
+        </thead>
+        <tbody>
+          {members.length === 0 && (
+            <tr>
+              <td colSpan={role === "owner" ? 3 : 2} className="text-[var(--velo-muted)]">
+                No team members yet.
+              </td>
+            </tr>
+          )}
+          {members.map((member) => (
+            <tr key={member.id}>
+              <td className="mono">{member.email}</td>
+              <td>{member.role}</td>
+              {role === "owner" && (
+                <td>
+                  <button
+                    className="btn btn-secondary text-xs"
+                    disabled={busy}
+                    onClick={() => remove(member.id)}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {role === "owner" && (
+        <form className="mt-4 grid gap-3 sm:grid-cols-3" onSubmit={invite}>
+          <Field
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">Role</span>
+            <select
+              className="w-full rounded-xl border border-[var(--velo-border)] bg-transparent px-3 py-2"
+              value={memberRole}
+              onChange={(e) => setMemberRole(e.target.value as "admin" | "viewer")}
+            >
+              <option value="admin">Admin</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </label>
+          <div className="self-end">
+            <button className="btn btn-primary" disabled={busy} type="submit">
+              Invite
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function TriggersPanel() {
+  const [triggers, setTriggers] = useState<Trigger[]>([]);
+  const [name, setName] = useState("");
+  const [actionUrl, setActionUrl] = useState("");
+  const [event, setEvent] = useState<"conversion" | "click">("conversion");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.triggers().then(({ triggers: items }) => setTriggers(items)).catch(() => {});
+  }, []);
+
+  async function addTrigger(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const { trigger } = await api.createTrigger({ name, event, action_url: actionUrl });
+      setTriggers((prev) => [trigger, ...prev]);
+      setName("");
+      setActionUrl("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create trigger");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(triggerId: string) {
+    await api.deleteTrigger(triggerId);
+    setTriggers((prev) => prev.filter((t) => t.id !== triggerId));
+  }
+
+  return (
+    <div className="card p-5">
+      <h2 className="font-semibold">Triggers</h2>
+      <p className="mt-1 text-sm text-[var(--velo-muted)]">
+        Fire a webhook when conversions (or clicks) are recorded. Use macros:{" "}
+        <code className="mono">{"{click_id}"}</code>, <code className="mono">{"{payout}"}</code>,{" "}
+        <code className="mono">{"{order_id}"}</code>.
+      </p>
+      <ErrorBox message={error} />
+      <table className="table mt-4">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Event</th>
+            <th>URL</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {triggers.map((trigger) => (
+            <tr key={trigger.id}>
+              <td>{trigger.name}</td>
+              <td>{trigger.event}</td>
+              <td className="mono max-w-xs truncate">{trigger.action_url}</td>
+              <td>
+                <button
+                  className="btn btn-secondary text-xs"
+                  onClick={() => remove(trigger.id)}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={addTrigger}>
+        <Field label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Event</span>
+          <select
+            className="w-full rounded-xl border border-[var(--velo-border)] bg-transparent px-3 py-2"
+            value={event}
+            onChange={(e) => setEvent(e.target.value as "conversion" | "click")}
+          >
+            <option value="conversion">Conversion</option>
+            <option value="click">Click</option>
+          </select>
+        </label>
+        <Field
+          label="Webhook URL"
+          placeholder="https://hooks.example.com/conv?click={click_id}&payout={payout}"
+          value={actionUrl}
+          onChange={(e) => setActionUrl(e.target.value)}
+          required
+        />
+        <button className="btn btn-primary sm:col-span-2" disabled={busy} type="submit">
+          Add trigger
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export function NotesPanel({
+  entityType,
+  entityId,
+  canWrite,
+}: {
+  entityType: EntityNote["entity_type"];
+  entityId: string;
+  canWrite: boolean;
+}) {
+  const [notes, setNotes] = useState<EntityNote[]>([]);
+  const [body, setBody] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!entityId) return;
+    api.notes(entityType, entityId).then(({ notes: items }) => setNotes(items)).catch(() => {});
+  }, [entityType, entityId]);
+
+  async function addNote(e: FormEvent) {
+    e.preventDefault();
+    if (!canWrite) return;
+    try {
+      const { note } = await api.createNote({ entity_type: entityType, entity_id: entityId, body });
+      setNotes((prev) => [note, ...prev]);
+      setBody("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save note");
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <h2 className="font-semibold">Notes</h2>
+      <ErrorBox message={error} />
+      {canWrite && (
+        <form className="mt-3 flex gap-2" onSubmit={addNote}>
+          <input
+            className="flex-1 rounded-xl border border-[var(--velo-border)] bg-transparent px-3 py-2"
+            placeholder="Add a note…"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
+          <button className="btn btn-secondary" type="submit">
+            Save
+          </button>
+        </form>
+      )}
+      <ul className="mt-4 space-y-2">
+        {notes.length === 0 && <li className="text-sm text-[var(--velo-muted)]">No notes yet.</li>}
+        {notes.map((note) => (
+          <li className="rounded-xl border border-[var(--velo-border)] p-3 text-sm" key={note.id}>
+            <p>{note.body}</p>
+            <p className="mt-1 text-xs text-[var(--velo-muted)]">
+              {new Date(note.updated_at).toLocaleString()}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

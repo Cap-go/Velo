@@ -12,8 +12,8 @@ import { requireUser } from "../lib/access";
 const reports = new Hono<{ Bindings: Env }>();
 
 reports.get("/campaigns", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
   const filters = parseReportFilters({
     from: c.req.query("from"),
@@ -23,13 +23,13 @@ reports.get("/campaigns", async (c) => {
     status: c.req.query("status"),
   });
 
-  const campaigns = await listCampaignReports(c.env.DB, user.id, filters);
+  const campaigns = await listCampaignReports(c.env.DB, session.account_id, filters);
   return c.json({ campaigns });
 });
 
 reports.get("/campaigns.csv", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
   const filters = parseReportFilters({
     from: c.req.query("from"),
@@ -39,7 +39,7 @@ reports.get("/campaigns.csv", async (c) => {
     status: c.req.query("status"),
   });
 
-  const campaigns = await listCampaignReports(c.env.DB, user.id, filters);
+  const campaigns = await listCampaignReports(c.env.DB, session.account_id, filters);
   const rows = campaigns.map((row) => [
     row.name,
     row.campaign_key ?? row.slug,
@@ -90,21 +90,21 @@ reports.get("/campaigns.csv", async (c) => {
 });
 
 reports.get("/campaigns/:id/trends", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
   const filters = parseReportFilters({
     from: c.req.query("from"),
     to: c.req.query("to"),
   });
 
-  const trends = await getCampaignTrends(c.env.DB, c.req.param("id"), user.id, filters);
+  const trends = await getCampaignTrends(c.env.DB, c.req.param("id"), session.account_id, filters);
   return c.json({ trends });
 });
 
 reports.get("/clicks.csv", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
   const programId = c.req.query("program_id");
   if (!programId) return c.json({ error: "program_id required" }, 400);
@@ -114,7 +114,7 @@ reports.get("/clicks.csv", async (c) => {
     to: c.req.query("to"),
   });
 
-  const rows = await exportClickLogCsv(c.env.DB, programId, user.id, filters);
+  const rows = await exportClickLogCsv(c.env.DB, programId, session.account_id, filters);
   const csv = toCsv(
     [
       "click_id",
@@ -139,8 +139,8 @@ reports.get("/clicks.csv", async (c) => {
 });
 
 reports.get("/conversions.csv", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
   const programId = c.req.query("program_id");
   if (!programId) return c.json({ error: "program_id required" }, 400);
@@ -150,7 +150,7 @@ reports.get("/conversions.csv", async (c) => {
     to: c.req.query("to"),
   });
 
-  const rows = await exportConversionsCsv(c.env.DB, programId, user.id, filters);
+  const rows = await exportConversionsCsv(c.env.DB, programId, session.account_id, filters);
   const csv = toCsv(
     [
       "order_id",

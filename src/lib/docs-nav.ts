@@ -11,6 +11,11 @@ export const DOC_PAGES: DocPage[] = [
     description: "How Capve tracks clicks and records conversions",
   },
   {
+    slug: "postback",
+    title: "Postback URL",
+    description: "Binom-style S2S postback from affiliate networks",
+  },
+  {
     slug: "tracking-links",
     title: "Tracking links",
     description: "Affiliate links, redirects, and click counting",

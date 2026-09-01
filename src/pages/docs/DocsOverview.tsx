@@ -24,7 +24,8 @@ export function DocsOverview() {
       <h2>Postback URL (incoming)</h2>
       <CodeBlock>{buildPostbackUrl(base)}</CodeBlock>
       <p>
-        See <Link to="/docs/server-conversions">Server-side conversions</Link> for parameters and
+        See <Link to="/docs/postback">Postback URL</Link> for network S2S setup, and{" "}
+        <Link to="/docs/server-conversions">Server-side conversions</Link> for parameters and
         examples.
       </p>
     </>

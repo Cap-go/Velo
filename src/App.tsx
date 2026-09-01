@@ -6,6 +6,7 @@ import { LandingPage } from "./pages/Landing";
 import { DocsBrowserAttribution } from "./pages/docs/DocsBrowserAttribution";
 import { DocsConvertApi } from "./pages/docs/DocsConvertApi";
 import { DocsOverview } from "./pages/docs/DocsOverview";
+import { DocsPostback } from "./pages/docs/DocsPostback";
 import { DocsServerConversions } from "./pages/docs/DocsServerConversions";
 import { DocsTrackingLinks } from "./pages/docs/DocsTrackingLinks";
 
@@ -18,6 +19,7 @@ export function App() {
           <Route path="/app" element={<DashboardPage />} />
           <Route path="/docs" element={<DocsLayout />}>
             <Route index element={<DocsOverview />} />
+            <Route path="postback" element={<DocsPostback />} />
             <Route path="tracking-links" element={<DocsTrackingLinks />} />
             <Route path="browser-attribution" element={<DocsBrowserAttribution />} />
             <Route path="server-conversions" element={<DocsServerConversions />} />

@@ -5,7 +5,9 @@ import {
   recordConversion,
   type ConversionInput,
 } from "../db/queries";
+import { getTriggersForEvent } from "../db/ops";
 import { fireS2SPostback } from "./postback";
+import { fireTriggerWebhooks } from "./triggers";
 import { id } from "./utils";
 
 export type CreateConversionParams = {
@@ -22,7 +24,7 @@ export type CreateConversionParams = {
 
 export async function createConversion(
   db: D1Database,
-  program: { id: string; s2s_postback_url?: string | null },
+  program: { id: string; user_id: string; s2s_postback_url?: string | null },
   affiliate: { id: string; code: string },
   params: CreateConversionParams,
 ): Promise<{
@@ -61,6 +63,16 @@ export async function createConversion(
       currency: params.currency ?? "USD",
       order_id: params.order_id,
       affiliate_code: affiliate.code,
+    });
+
+    const triggers = await getTriggersForEvent(db, program.user_id, program.id, "conversion");
+    await fireTriggerWebhooks(triggers, {
+      click_id: params.click_id ?? null,
+      payout: params.amount,
+      status: params.status ?? "lead",
+      order_id: params.order_id,
+      affiliate_code: affiliate.code,
+      program_id: program.id,
     });
   }
 

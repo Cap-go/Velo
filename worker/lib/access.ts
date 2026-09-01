@@ -1,5 +1,8 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import type { Context } from "hono";
 import type { Env, User } from "../types";
+import type { SessionUser, TeamRole } from "../types-ops";
+import { findTeamMembership } from "../db/ops";
 import { createUser, getUserByEmail } from "../db/queries";
 import { id } from "./utils";
 
@@ -65,14 +68,33 @@ async function getOrCreateUser(db: D1Database, email: string): Promise<User> {
   return user;
 }
 
+async function resolveSession(db: D1Database, user: User): Promise<SessionUser> {
+  const membership = await findTeamMembership(db, user.email);
+  if (membership) {
+    return {
+      id: user.id,
+      email: user.email,
+      role: membership.role,
+      account_id: membership.owner_user_id,
+    };
+  }
+  return {
+    id: user.id,
+    email: user.email,
+    role: "owner",
+    account_id: user.id,
+  };
+}
+
 export async function resolveOperator(c: {
   env: Env;
   req: { header: (name: string) => string | undefined };
-}): Promise<User | null> {
+}): Promise<SessionUser | null> {
   const { env, req } = c;
 
   if (!accessConfigured(env)) {
-    return getOrCreateUser(env.DB, instanceOperatorEmail(env));
+    const user = await getOrCreateUser(env.DB, instanceOperatorEmail(env));
+    return resolveSession(env.DB, user);
   }
 
   const token = req.header("cf-access-jwt-assertion");
@@ -81,12 +103,24 @@ export async function resolveOperator(c: {
   const identity = await verifyAccessToken(env, token);
   if (!identity) return null;
 
-  return getOrCreateUser(env.DB, identity.email);
+  const user = await getOrCreateUser(env.DB, identity.email);
+  return resolveSession(env.DB, user);
 }
 
 export async function requireUser(c: {
   env: Env;
   req: { header: (name: string) => string | undefined };
-}): Promise<User | null> {
+}): Promise<SessionUser | null> {
   return resolveOperator(c);
+}
+
+export function canWrite(role: TeamRole): boolean {
+  return role === "owner" || role === "admin";
+}
+
+export async function requireWrite(c: Context<{ Bindings: Env }>): Promise<SessionUser | Response> {
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+  if (!canWrite(session.role)) return c.json({ error: "Forbidden" }, 403);
+  return session;
 }

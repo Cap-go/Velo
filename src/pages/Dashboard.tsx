@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CampaignReportPanel } from "../components/CampaignReport";
 import { EntityPanel } from "../components/EntityPanel";
 import { PathEditor } from "../components/PathEditor";
+import { OpsPanel, NotesPanel } from "../components/OpsPanel";
 import { CodeBlock } from "../components/CodeBlock";
 import { ErrorBox, Field, Shell } from "../components/ui";
 import { snippetScriptTag } from "../lib/integration-examples";
@@ -20,7 +21,7 @@ import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
 type Tab = "overview" | "clicklog" | "conversions";
-type EntityView = "campaigns" | "reports" | "sources" | "networks" | "offers" | "landers" | "groups";
+type EntityView = "campaigns" | "reports" | "sources" | "networks" | "offers" | "landers" | "groups" | "settings";
 
 const ENTITY_NAV: { key: EntityView; label: string }[] = [
   { key: "campaigns", label: "Campaigns" },
@@ -30,6 +31,7 @@ const ENTITY_NAV: { key: EntityView; label: string }[] = [
   { key: "offers", label: "Offers" },
   { key: "landers", label: "Landers" },
   { key: "groups", label: "Groups" },
+  { key: "settings", label: "Settings" },
 ];
 
 export function DashboardPage() {
@@ -234,6 +236,21 @@ export function DashboardPage() {
     }
   }
 
+  async function cloneSelectedProgram() {
+    if (!selectedId) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { program } = await api.cloneProgram(selectedId);
+      setPrograms((prev) => [program, ...prev]);
+      setSelectedId(program.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clone campaign");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const selectedProgram = programs.find((p) => p.id === selectedId) ?? stats?.program;
   const visibleStats = stats && stats.program.id === selectedId ? stats : null;
 
@@ -294,7 +311,9 @@ export function DashboardPage() {
 
         {entity !== "campaigns" ? (
           entity === "reports" ? (
-            <CampaignReportPanel />
+            <CampaignReportPanel canWrite={user.role !== "viewer"} />
+          ) : entity === "settings" ? (
+            <OpsPanel role={user.role ?? "owner"} />
           ) : (
             <EntityPanel kind={entity} />
           )
@@ -355,6 +374,7 @@ export function DashboardPage() {
             ) : (
               <OverviewPanel
                 busy={busy}
+                canWrite={(user.role ?? "owner") !== "viewer"}
                 convertSecretOnce={convertSecretOnce}
                 lastLink={lastLink}
                 selectedId={selectedId}
@@ -369,6 +389,7 @@ export function DashboardPage() {
                 onS2sChange={setS2sPostbackUrl}
                 onCreateAffiliate={createAffiliate}
                 onSaveSettings={saveProgramSettings}
+                onClone={cloneSelectedProgram}
               />
             )}
           </section>
@@ -381,6 +402,7 @@ export function DashboardPage() {
 
 function OverviewPanel({
   busy,
+  canWrite,
   convertSecretOnce,
   lastLink,
   selectedId,
@@ -395,8 +417,10 @@ function OverviewPanel({
   onS2sChange,
   onCreateAffiliate,
   onSaveSettings,
+  onClone,
 }: {
   busy: boolean;
+  canWrite: boolean;
   convertSecretOnce: string;
   lastLink: string;
   selectedId: string;
@@ -411,6 +435,7 @@ function OverviewPanel({
   onS2sChange: (v: string) => void;
   onCreateAffiliate: (e: FormEvent) => void;
   onSaveSettings: (e: FormEvent) => void;
+  onClone: () => void;
 }) {
   const base = appBaseUrl();
   return (
@@ -418,9 +443,24 @@ function OverviewPanel({
       <div className="card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h2 className="font-semibold">Tracking & postback</h2>
-          <Link className="text-sm underline" to="/docs/server-conversions">
-            Integration docs
-          </Link>
+          <div className="flex flex-wrap gap-3 text-sm">
+            {canWrite && (
+              <button
+                className="underline"
+                disabled={busy}
+                onClick={onClone}
+                type="button"
+              >
+                Clone campaign
+              </button>
+            )}
+            <Link className="underline" to="/docs/postback">
+              Postback docs
+            </Link>
+            <Link className="underline" to="/docs/server-conversions">
+              Integration docs
+            </Link>
+          </div>
         </div>
 
         {convertSecretOnce && (
@@ -472,6 +512,8 @@ function OverviewPanel({
       </div>
 
       <PathEditor programId={selectedId} />
+
+      <NotesPanel canWrite={canWrite} entityId={selectedId} entityType="program" />
 
       <div className="card p-5">
         <h2 className="font-semibold">Add affiliate</h2>

@@ -1,4 +1,36 @@
-export type User = { id: string; email: string };
+export type TeamRole = "owner" | "admin" | "viewer";
+
+export type User = { id: string; email: string; role?: TeamRole; account_id?: string };
+
+export type TeamMember = {
+  id: string;
+  owner_user_id: string;
+  email: string;
+  role: "admin" | "viewer";
+  created_at: number;
+};
+
+export type EntityNote = {
+  id: string;
+  user_id: string;
+  entity_type: "program" | "traffic_source" | "network" | "offer" | "lander" | "group";
+  entity_id: string;
+  body: string;
+  created_at: number;
+  updated_at: number;
+};
+
+export type Trigger = {
+  id: string;
+  user_id: string;
+  program_id: string | null;
+  name: string;
+  event: "conversion" | "click";
+  action_type: "webhook";
+  action_url: string;
+  enabled: boolean;
+  created_at: number;
+};
 
 export type Program = {
   id: string;
@@ -344,6 +376,49 @@ export const api = {
       `/api/reports/campaigns/${programId}/trends${qs ? `?${qs}` : ""}`,
     );
   },
+  team: () => request<{ members: TeamMember[]; role: TeamRole }>("/api/ops/team"),
+  inviteMember: (email: string, role: "admin" | "viewer") =>
+    request<{ member: TeamMember }>("/api/ops/team", {
+      method: "POST",
+      body: JSON.stringify({ email, role }),
+    }),
+  removeMember: (memberId: string) =>
+    request<{ ok: boolean }>(`/api/ops/team/${memberId}`, { method: "DELETE" }),
+  notes: (entityType: EntityNote["entity_type"], entityId: string) =>
+    request<{ notes: EntityNote[] }>(
+      `/api/ops/notes?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`,
+    ),
+  createNote: (data: { entity_type: EntityNote["entity_type"]; entity_id: string; body: string }) =>
+    request<{ note: EntityNote }>("/api/ops/notes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  triggers: (programId?: string) =>
+    request<{ triggers: Trigger[] }>(
+      `/api/ops/triggers${programId ? `?program_id=${programId}` : ""}`,
+    ),
+  createTrigger: (data: {
+    name: string;
+    event: "conversion" | "click";
+    action_url: string;
+    program_id?: string | null;
+  }) =>
+    request<{ trigger: Trigger }>("/api/ops/triggers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteTrigger: (triggerId: string) =>
+    request<{ ok: boolean }>(`/api/ops/triggers/${triggerId}`, { method: "DELETE" }),
+  bulkUpdatePrograms: (programIds: string[], updates: { status?: string }) =>
+    request<{ updated: number }>("/api/ops/programs/bulk", {
+      method: "POST",
+      body: JSON.stringify({ program_ids: programIds, ...updates }),
+    }),
+  cloneProgram: (programId: string, name?: string) =>
+    request<{ program: Program }>(`/api/ops/programs/${programId}/clone`, {
+      method: "POST",
+      body: JSON.stringify(name ? { name } : {}),
+    }),
 };
 
 export function formatMoney(cents: number): string {

@@ -14,20 +14,20 @@ import type { Env } from "../types";
 import { campaignKeyFromName } from "../db/entities";
 import { apiKey, convertSecret, id, slugify } from "../lib/utils";
 import { buildCampaignUrl, buildPostbackUrl, buildTrackingUrl, parseHttpUrl } from "../lib/urls";
-import { requireUser } from "../lib/access";
+import { requireUser, requireWrite } from "../lib/access";
 
 const programs = new Hono<{ Bindings: Env }>();
 
 programs.get("/", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
-  const items = await listPrograms(c.env.DB, user.id);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+  const items = await listPrograms(c.env.DB, session.account_id);
   return c.json({ programs: items });
 });
 
 programs.post("/", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
   const body = await c.req.json<{
     name?: string;
@@ -46,7 +46,7 @@ programs.post("/", async (c) => {
   const secret = convertSecret();
   const program = {
     id: id("prg"),
-    user_id: user.id,
+    user_id: session.account_id,
     name,
     slug: slugify(name),
     api_key: apiKey(),
@@ -66,8 +66,8 @@ programs.post("/", async (c) => {
 });
 
 programs.patch("/:id", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
   const body = await c.req.json<{
     name?: string;
@@ -99,25 +99,25 @@ programs.patch("/:id", async (c) => {
     updates.s2s_postback_url = raw ? raw : null;
   }
 
-  const program = await updateProgram(c.env.DB, c.req.param("id"), user.id, updates);
+  const program = await updateProgram(c.env.DB, c.req.param("id"), session.account_id, updates);
   if (!program) return c.json({ error: "Not found" }, 404);
   return c.json({ program });
 });
 
 programs.get("/:id", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
   return c.json({ program });
 });
 
 programs.get("/:id/stats", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const stats = await getProgramStats(c.env.DB, program);
@@ -125,10 +125,10 @@ programs.get("/:id/stats", async (c) => {
 });
 
 programs.get("/:id/affiliates", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const affiliates = await listAffiliates(c.env.DB, program.id);
@@ -136,10 +136,10 @@ programs.get("/:id/affiliates", async (c) => {
 });
 
 programs.post("/:id/affiliates", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
   if (!program.destination_url) {
     return c.json({ error: "Set a program destination URL before creating affiliates" }, 400);
@@ -159,10 +159,10 @@ programs.post("/:id/affiliates", async (c) => {
 });
 
 programs.get("/:id/tracking", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   return c.json({
@@ -179,10 +179,10 @@ programs.get("/:id/tracking", async (c) => {
 });
 
 programs.get("/:id/clicks", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
@@ -192,10 +192,10 @@ programs.get("/:id/clicks", async (c) => {
 });
 
 programs.get("/:id/conversions", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);

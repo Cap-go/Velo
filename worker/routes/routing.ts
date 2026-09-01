@@ -10,16 +10,16 @@ import {
 import { getProgram } from "../db/queries";
 import type { Env } from "../types";
 import type { FlowType, RotationMode } from "../types-routing";
-import { requireUser } from "../lib/access";
+import { requireUser, requireWrite } from "../lib/access";
 import { parseHttpUrl } from "../lib/urls";
 
 const routing = new Hono<{ Bindings: Env }>();
 
 routing.get("/:id/rotation", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const config = await getRotationConfig(c.env.DB, program.id);
@@ -27,10 +27,10 @@ routing.get("/:id/rotation", async (c) => {
 });
 
 routing.put("/:id/rotation", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const body = await c.req.json<{ mode?: RotationMode; fixed_path_id?: string | null }>();
@@ -48,10 +48,10 @@ routing.put("/:id/rotation", async (c) => {
 });
 
 routing.post("/:id/paths", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const body = await c.req.json<{
@@ -94,10 +94,10 @@ routing.post("/:id/paths", async (c) => {
 });
 
 routing.patch("/:id/paths/:pathId", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const body = await c.req.json<{
@@ -123,10 +123,10 @@ routing.patch("/:id/paths/:pathId", async (c) => {
 });
 
 routing.delete("/:id/paths/:pathId", async (c) => {
-  const user = await requireUser(c);
-  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const session = await requireWrite(c);
+  if (session instanceof Response) return session;
 
-  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  const program = await getProgram(c.env.DB, c.req.param("id"), session.account_id);
   if (!program) return c.json({ error: "Not found" }, 404);
 
   const deleted = await deletePath(c.env.DB, c.req.param("pathId"), program.id);

@@ -140,4 +140,35 @@ CREATE TABLE IF NOT EXISTS conversions (
 
 CREATE INDEX IF NOT EXISTS idx_conversions_affiliate ON conversions(affiliate_id);
 CREATE INDEX IF NOT EXISTS idx_conversions_program ON conversions(program_id);
+
+CREATE TABLE IF NOT EXISTS team_members (
+  id TEXT PRIMARY KEY,
+  owner_user_id TEXT NOT NULL REFERENCES users(id),
+  email TEXT NOT NULL,
+  role TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  UNIQUE(owner_user_id, email)
+);
+
+CREATE TABLE IF NOT EXISTS entity_notes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS triggers (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  program_id TEXT,
+  name TEXT NOT NULL,
+  event TEXT NOT NULL,
+  action_type TEXT NOT NULL,
+  action_url TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
 `;

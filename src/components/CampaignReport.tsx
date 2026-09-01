@@ -29,7 +29,7 @@ function queryString(filters: Record<string, string | number | undefined>): stri
   return qs ? `?${qs}` : "";
 }
 
-export function CampaignReportPanel() {
+export function CampaignReportPanel({ canWrite = true }: { canWrite?: boolean }) {
   const [campaigns, setCampaigns] = useState<CampaignReportRow[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [sources, setSources] = useState<TrafficSource[]>([]);
@@ -40,6 +40,7 @@ export function CampaignReportPanel() {
   const [sourceId, setSourceId] = useState("");
   const [status, setStatus] = useState("");
   const [selectedId, setSelectedId] = useState("");
+  const [checked, setChecked] = useState<Set<string>>(new Set());
   const [trends, setTrends] = useState<TrendPoint[]>([]);
 
   const filters = useMemo(() => {
@@ -101,6 +102,30 @@ export function CampaignReportPanel() {
 
   const exportCampaignsUrl = `/api/reports/campaigns.csv${queryString(filters)}`;
 
+  async function bulkPause() {
+    if (checked.size === 0) return;
+    setBusy(true);
+    try {
+      await api.bulkUpdatePrograms([...checked], { status: "paused" });
+      const { campaigns: rows } = await api.campaignReports(filters);
+      setCampaigns(rows);
+      setChecked(new Set());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Bulk update failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function toggleCheck(id: string) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="card p-5">
@@ -114,6 +139,11 @@ export function CampaignReportPanel() {
           <a className="btn btn-secondary text-sm" href={exportCampaignsUrl}>
             Export CSV
           </a>
+          {canWrite && checked.size > 0 && (
+            <button className="btn btn-secondary text-sm" disabled={busy} onClick={bulkPause} type="button">
+              Pause selected ({checked.size})
+            </button>
+          )}
         </div>
 
         <ErrorBox message={error} />
@@ -165,6 +195,7 @@ export function CampaignReportPanel() {
             <table className="table">
               <thead>
                 <tr>
+                  {canWrite && <th />}
                   <th>Campaign</th>
                   <th>Clicks</th>
                   <th>LP CTR</th>
@@ -182,7 +213,7 @@ export function CampaignReportPanel() {
               <tbody>
                 {campaigns.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="text-[var(--velo-muted)]">
+                    <td colSpan={canWrite ? 13 : 12} className="text-[var(--velo-muted)]">
                       No campaigns match these filters.
                     </td>
                   </tr>
@@ -193,6 +224,15 @@ export function CampaignReportPanel() {
                     className={selectedId === row.id ? "bg-[var(--velo-accent-soft)]" : undefined}
                     onClick={() => setSelectedId(row.id)}
                   >
+                    {canWrite && (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          checked={checked.has(row.id)}
+                          onChange={() => toggleCheck(row.id)}
+                          type="checkbox"
+                        />
+                      </td>
+                    )}
                     <td>
                       <button className="text-left" type="button">
                         <div className="font-medium">{row.name}</div>
