@@ -90,8 +90,43 @@ export type ConversionLogRow = {
 export type ProgramTracking = {
   postback_url: string;
   s2s_postback_url: string | null;
+  campaign_url: string | null;
   offer_url_macro: string;
   redirect_params: string[];
+};
+
+export type RotationMode = "normal" | "smart" | "fix_on" | "top_to_bottom";
+export type FlowType = "direct" | "lander" | "lander_offer" | "offer";
+
+export type Path = {
+  id: string;
+  rotation_id: string;
+  name: string;
+  flow_type: FlowType;
+  weight: number;
+  sort_order: number;
+  direct_url: string | null;
+  lander_id: string | null;
+  offer_id: string | null;
+  enabled: boolean;
+  created_at: number;
+  lander_url: string | null;
+  lander_name: string | null;
+  offer_url: string | null;
+  offer_name: string | null;
+};
+
+export type Rotation = {
+  id: string;
+  program_id: string;
+  mode: RotationMode;
+  fixed_path_id: string | null;
+  created_at: number;
+};
+
+export type RotationConfig = {
+  rotation: Rotation;
+  paths: Path[];
 };
 
 export type Affiliate = {
@@ -203,6 +238,51 @@ export const api = {
     request<{ group: Group }>("/api/entities/groups", {
       method: "POST",
       body: JSON.stringify({ name }),
+    }),
+  rotation: (programId: string) =>
+    request<RotationConfig>(`/api/programs/${programId}/rotation`),
+  updateRotation: (programId: string, data: { mode?: RotationMode; fixed_path_id?: string | null }) =>
+    request<RotationConfig>(`/api/programs/${programId}/rotation`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  createPath: (
+    programId: string,
+    data: {
+      name: string;
+      flow_type: FlowType;
+      weight?: number;
+      sort_order?: number;
+      direct_url?: string | null;
+      lander_id?: string | null;
+      offer_id?: string | null;
+    },
+  ) =>
+    request<{ path: Path }>(`/api/programs/${programId}/paths`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updatePath: (
+    programId: string,
+    pathId: string,
+    data: Partial<{
+      name: string;
+      flow_type: FlowType;
+      weight: number;
+      sort_order: number;
+      direct_url: string | null;
+      lander_id: string | null;
+      offer_id: string | null;
+      enabled: boolean;
+    }>,
+  ) =>
+    request<{ path: Path }>(`/api/programs/${programId}/paths/${pathId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deletePath: (programId: string, pathId: string) =>
+    request<{ ok: boolean }>(`/api/programs/${programId}/paths/${pathId}`, {
+      method: "DELETE",
     }),
 };
 

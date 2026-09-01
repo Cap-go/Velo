@@ -85,10 +85,44 @@ CREATE TABLE IF NOT EXISTS clicks (
   affiliate_id TEXT NOT NULL REFERENCES affiliates(id),
   ip TEXT,
   user_agent TEXT,
+  path_id TEXT,
+  lander_id TEXT,
+  offer_id TEXT,
   created_at INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_clicks_affiliate ON clicks(affiliate_id);
+
+CREATE TABLE IF NOT EXISTS rotations (
+  id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL UNIQUE REFERENCES programs(id),
+  mode TEXT NOT NULL DEFAULT 'normal',
+  fixed_path_id TEXT,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS paths (
+  id TEXT PRIMARY KEY,
+  rotation_id TEXT NOT NULL REFERENCES rotations(id),
+  name TEXT NOT NULL,
+  flow_type TEXT NOT NULL,
+  weight INTEGER NOT NULL DEFAULT 100,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  direct_url TEXT,
+  lander_id TEXT,
+  offer_id TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS visitor_assignments (
+  id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES programs(id),
+  visitor_key TEXT NOT NULL,
+  path_id TEXT NOT NULL REFERENCES paths(id),
+  created_at INTEGER NOT NULL,
+  UNIQUE(program_id, visitor_key)
+);
 
 CREATE TABLE IF NOT EXISTS conversions (
   id TEXT PRIMARY KEY,

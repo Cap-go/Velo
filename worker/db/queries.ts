@@ -222,12 +222,18 @@ export async function recordClick(
     affiliate_id: string;
     ip?: string | null;
     user_agent?: string | null;
+    path_id?: string | null;
+    lander_id?: string | null;
+    offer_id?: string | null;
     created_at: number;
   },
 ) {
   await db
     .prepare(
-      "INSERT INTO clicks (id, program_id, affiliate_id, ip, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      `INSERT INTO clicks (
+        id, program_id, affiliate_id, ip, user_agent,
+        path_id, lander_id, offer_id, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       click.id,
@@ -235,6 +241,9 @@ export async function recordClick(
       click.affiliate_id,
       click.ip ?? null,
       click.user_agent ?? null,
+      click.path_id ?? null,
+      click.lander_id ?? null,
+      click.offer_id ?? null,
       click.created_at,
     )
     .run();

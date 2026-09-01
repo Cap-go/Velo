@@ -16,6 +16,9 @@ describe("phase 2 entities", () => {
       await env.DB.prepare(statement).run();
     }
     await env.DB.exec(`
+      DELETE FROM visitor_assignments;
+      DELETE FROM paths;
+      DELETE FROM rotations;
       DELETE FROM offers;
       DELETE FROM landers;
       DELETE FROM affiliate_networks;

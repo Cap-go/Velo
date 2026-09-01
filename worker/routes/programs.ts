@@ -13,7 +13,7 @@ import {
 import type { Env } from "../types";
 import { campaignKeyFromName } from "../db/entities";
 import { apiKey, convertSecret, id, slugify } from "../lib/utils";
-import { buildPostbackUrl, buildTrackingUrl, parseHttpUrl } from "../lib/urls";
+import { buildCampaignUrl, buildPostbackUrl, buildTrackingUrl, parseHttpUrl } from "../lib/urls";
 import { requireUser } from "../lib/access";
 
 const programs = new Hono<{ Bindings: Env }>();
@@ -169,6 +169,9 @@ programs.get("/:id/tracking", async (c) => {
     tracking: {
       postback_url: buildPostbackUrl(c.env.APP_URL),
       s2s_postback_url: program.s2s_postback_url,
+      campaign_url: program.campaign_key
+        ? buildCampaignUrl(c.env.APP_URL, program.campaign_key)
+        : null,
       offer_url_macro: "{click_id}",
       redirect_params: ["velo_ref", "click_id"],
     },

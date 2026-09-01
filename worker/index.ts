@@ -5,7 +5,8 @@ import { convert } from "./routes/convert";
 import { entities } from "./routes/entities";
 import { postback } from "./routes/postback";
 import { programs } from "./routes/programs";
-import { redirect } from "./routes/redirect";
+import { campaign, redirect } from "./routes/redirect";
+import { routing } from "./routes/routing";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -19,9 +20,12 @@ app.get("/api/health", (c) => c.json({ ok: true, service: "capve" }));
 app.route("/api/auth", auth);
 app.route("/api/entities", entities);
 app.route("/api/programs", programs);
+app.route("/api/programs", routing);
 app.route("/api/campaigns", programs);
+app.route("/api/campaigns", routing);
 app.route("/api/v1/convert", convert);
 app.route("/r", redirect);
+app.route("/c", campaign);
 app.route("/click", postback);
 
 import { ATTRIBUTION_SNIPPET } from "./lib/urls";

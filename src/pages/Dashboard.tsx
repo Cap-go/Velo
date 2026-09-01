@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { EntityPanel } from "../components/EntityPanel";
+import { PathEditor } from "../components/PathEditor";
 import { CodeBlock } from "../components/CodeBlock";
 import { ErrorBox, Field, Shell } from "../components/ui";
 import { snippetScriptTag } from "../lib/integration-examples";
@@ -431,6 +432,12 @@ function OverviewPanel({
               Incoming postback URL (configure in affiliate network):
             </p>
             <CodeBlock>{tracking.postback_url}</CodeBlock>
+            {tracking.campaign_url && (
+              <>
+                <p className="text-sm text-[var(--velo-muted)]">Campaign click URL:</p>
+                <CodeBlock>{tracking.campaign_url}</CodeBlock>
+              </>
+            )}
             <p className="text-sm text-[var(--velo-muted)]">
               Attribution snippet for your merchant site:
             </p>
@@ -457,6 +464,8 @@ function OverviewPanel({
           </button>
         </form>
       </div>
+
+      <PathEditor programId={selectedId} />
 
       <div className="card p-5">
         <h2 className="font-semibold">Add affiliate</h2>
