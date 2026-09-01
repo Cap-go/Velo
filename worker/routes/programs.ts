@@ -11,6 +11,7 @@ import {
   updateProgram,
 } from "../db/queries";
 import type { Env } from "../types";
+import { campaignKeyFromName } from "../db/entities";
 import { apiKey, convertSecret, id, slugify } from "../lib/utils";
 import { buildPostbackUrl, buildTrackingUrl, parseHttpUrl } from "../lib/urls";
 import { requireUser } from "../lib/access";
@@ -28,7 +29,11 @@ programs.post("/", async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-  const body = await c.req.json<{ name?: string; destination_url?: string }>();
+  const body = await c.req.json<{
+    name?: string;
+    destination_url?: string;
+    traffic_source_id?: string;
+  }>();
   const name = body.name?.trim();
   const destinationRaw = body.destination_url?.trim();
   if (!name) return c.json({ error: "Program name required" }, 400);
@@ -48,6 +53,11 @@ programs.post("/", async (c) => {
     destination_url: destination.toString(),
     convert_secret: secret,
     s2s_postback_url: null,
+    campaign_key: campaignKeyFromName(name),
+    group_id: null,
+    traffic_source_id: body.traffic_source_id?.trim() || null,
+    tags: null,
+    status: "active",
     created_at: Date.now(),
   };
   await createProgram(c.env.DB, program);

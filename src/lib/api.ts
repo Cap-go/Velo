@@ -8,6 +8,55 @@ export type Program = {
   api_key: string;
   destination_url: string | null;
   s2s_postback_url: string | null;
+  campaign_key: string | null;
+  group_id: string | null;
+  traffic_source_id: string | null;
+  tags: string | null;
+  status: string;
+  created_at: number;
+};
+
+export type TrafficSource = {
+  id: string;
+  user_id: string;
+  name: string;
+  cost_type: "cpc" | "cpm" | "cpa";
+  default_cost_cents: number;
+  postback_percent: number;
+  s2s_postback_url: string | null;
+  created_at: number;
+};
+
+export type AffiliateNetwork = {
+  id: string;
+  user_id: string;
+  name: string;
+  postback_url_template: string | null;
+  created_at: number;
+};
+
+export type Lander = {
+  id: string;
+  user_id: string;
+  name: string;
+  url: string;
+  created_at: number;
+};
+
+export type Offer = {
+  id: string;
+  user_id: string;
+  network_id: string | null;
+  name: string;
+  url: string;
+  payout_cents: number;
+  created_at: number;
+};
+
+export type Group = {
+  id: string;
+  user_id: string;
+  name: string;
   created_at: number;
 };
 
@@ -121,6 +170,40 @@ export const api = {
         body: JSON.stringify({ name }),
       },
     ),
+  trafficSources: () => request<{ traffic_sources: TrafficSource[] }>("/api/entities/traffic-sources"),
+  createTrafficSource: (data: {
+    name: string;
+    cost_type?: "cpc" | "cpm" | "cpa";
+    default_cost_cents?: number;
+  }) =>
+    request<{ traffic_source: TrafficSource }>("/api/entities/traffic-sources", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  networks: () => request<{ networks: AffiliateNetwork[] }>("/api/entities/networks"),
+  createNetwork: (data: { name: string; postback_url_template?: string | null }) =>
+    request<{ network: AffiliateNetwork }>("/api/entities/networks", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  landers: () => request<{ landers: Lander[] }>("/api/entities/landers"),
+  createLander: (data: { name: string; url: string }) =>
+    request<{ lander: Lander }>("/api/entities/landers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  offers: () => request<{ offers: Offer[] }>("/api/entities/offers"),
+  createOffer: (data: { name: string; url: string; network_id?: string | null }) =>
+    request<{ offer: Offer }>("/api/entities/offers", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  groups: () => request<{ groups: Group[] }>("/api/entities/groups"),
+  createGroup: (name: string) =>
+    request<{ group: Group }>("/api/entities/groups", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
 };
 
 export function formatMoney(cents: number): string {

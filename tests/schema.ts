@@ -14,10 +14,59 @@ CREATE TABLE IF NOT EXISTS programs (
   destination_url TEXT,
   convert_secret TEXT,
   s2s_postback_url TEXT,
+  campaign_key TEXT,
+  group_id TEXT,
+  traffic_source_id TEXT,
+  tags TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
   created_at INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_programs_user ON programs(user_id);
+
+CREATE TABLE IF NOT EXISTS groups (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS traffic_sources (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  cost_type TEXT NOT NULL DEFAULT 'cpc',
+  default_cost_cents INTEGER NOT NULL DEFAULT 0,
+  postback_percent INTEGER NOT NULL DEFAULT 100,
+  s2s_postback_url TEXT,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS affiliate_networks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  postback_url_template TEXT,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS landers (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS offers (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  network_id TEXT,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  payout_cents INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS affiliates (
   id TEXT PRIMARY KEY,

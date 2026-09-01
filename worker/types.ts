@@ -20,6 +20,11 @@ export type Program = {
   api_key: string;
   destination_url: string | null;
   s2s_postback_url: string | null;
+  campaign_key: string | null;
+  group_id: string | null;
+  traffic_source_id: string | null;
+  tags: string | null;
+  status: string;
   created_at: number;
 };
 

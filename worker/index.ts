@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "./types";
 import { auth } from "./routes/auth";
 import { convert } from "./routes/convert";
+import { entities } from "./routes/entities";
 import { postback } from "./routes/postback";
 import { programs } from "./routes/programs";
 import { redirect } from "./routes/redirect";
@@ -16,7 +17,9 @@ app.use("*", async (c, next) => {
 app.get("/api/health", (c) => c.json({ ok: true, service: "capve" }));
 
 app.route("/api/auth", auth);
+app.route("/api/entities", entities);
 app.route("/api/programs", programs);
+app.route("/api/campaigns", programs);
 app.route("/api/v1/convert", convert);
 app.route("/r", redirect);
 app.route("/click", postback);

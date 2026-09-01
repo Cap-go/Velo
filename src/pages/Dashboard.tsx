@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { EntityPanel } from "../components/EntityPanel";
 import { CodeBlock } from "../components/CodeBlock";
 import { ErrorBox, Field, Shell } from "../components/ui";
 import { snippetScriptTag } from "../lib/integration-examples";
@@ -17,11 +18,22 @@ import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
 type Tab = "overview" | "clicklog" | "conversions";
+type EntityView = "campaigns" | "sources" | "networks" | "offers" | "landers" | "groups";
+
+const ENTITY_NAV: { key: EntityView; label: string }[] = [
+  { key: "campaigns", label: "Campaigns" },
+  { key: "sources", label: "Traffic sources" },
+  { key: "networks", label: "Aff. networks" },
+  { key: "offers", label: "Offers" },
+  { key: "landers", label: "Landers" },
+  { key: "groups", label: "Groups" },
+];
 
 export function DashboardPage() {
   const { user, accessRequired, loading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get("tab") as Tab) || "overview";
+  const entity = (searchParams.get("entity") as EntityView) || "campaigns";
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -119,8 +131,18 @@ export function DashboardPage() {
     setS2sPostbackUrl(program?.s2s_postback_url ?? "");
   }, [selectedId, programs, stats?.program]);
 
+  function setEntity(next: EntityView) {
+    const params: Record<string, string> = {};
+    if (next !== "campaigns") params.entity = next;
+    if (tab !== "overview") params.tab = tab;
+    setSearchParams(params);
+  }
+
   function setTab(next: Tab) {
-    setSearchParams(next === "overview" ? {} : { tab: next });
+    const params: Record<string, string> = {};
+    if (entity !== "campaigns") params.entity = entity;
+    if (next !== "overview") params.tab = next;
+    setSearchParams(params);
   }
 
   if (loading) {
@@ -231,18 +253,12 @@ export function DashboardPage() {
           </p>
         </div>
 
-        <nav className="flex flex-wrap gap-2">
-          {(
-            [
-              ["overview", "Overview"],
-              ["clicklog", "Clicklog"],
-              ["conversions", "Conversions"],
-            ] as const
-          ).map(([key, label]) => (
+        <nav className="flex flex-wrap gap-2 border-b border-[var(--velo-border)] pb-4">
+          {ENTITY_NAV.map(({ key, label }) => (
             <button
               key={key}
-              className={`btn ${tab === key ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setTab(key)}
+              className={`btn text-sm ${entity === key ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setEntity(key)}
               type="button"
             >
               {label}
@@ -250,8 +266,32 @@ export function DashboardPage() {
           ))}
         </nav>
 
+        {entity === "campaigns" && (
+          <nav className="flex flex-wrap gap-2">
+            {(
+              [
+                ["overview", "Overview"],
+                ["clicklog", "Clicklog"],
+                ["conversions", "Conversions"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                className={`btn text-sm ${tab === key ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setTab(key)}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        )}
+
         <ErrorBox message={error} />
 
+        {entity !== "campaigns" ? (
+          <EntityPanel kind={entity} />
+        ) : (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <section className="card p-5">
             <h2 className="font-semibold">Programs</h2>
@@ -288,7 +328,9 @@ export function DashboardPage() {
                   type="button"
                 >
                   <div className="font-medium">{program.name}</div>
-                  <div className="mono text-[var(--velo-muted)]">{program.slug}</div>
+                  <div className="mono text-[var(--velo-muted)]">
+                    {program.campaign_key ?? program.slug}
+                  </div>
                 </button>
               ))}
             </div>
@@ -324,6 +366,7 @@ export function DashboardPage() {
             )}
           </section>
         </div>
+        )}
       </div>
     </Shell>
   );

@@ -7,10 +7,11 @@ import type {
   Program,
   ProgramStats,
 } from "../types";
+import { campaignKeyFromName } from "./entities";
 import { affiliateCode, conversionRate, id, isUniqueConstraintError } from "../lib/utils";
 
 const PROGRAM_COLUMNS =
-  "id, user_id, name, slug, api_key, destination_url, s2s_postback_url, created_at";
+  "id, user_id, name, slug, api_key, destination_url, s2s_postback_url, campaign_key, group_id, traffic_source_id, tags, status, created_at";
 
 export async function getUserByEmail(
   db: D1Database,
@@ -74,7 +75,10 @@ export async function createProgram(
 ) {
   await db
     .prepare(
-      "INSERT INTO programs (id, user_id, name, slug, api_key, destination_url, convert_secret, s2s_postback_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      `INSERT INTO programs (
+        id, user_id, name, slug, api_key, destination_url, convert_secret,
+        s2s_postback_url, campaign_key, group_id, traffic_source_id, tags, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       program.id,
@@ -85,6 +89,11 @@ export async function createProgram(
       program.destination_url,
       program.convert_secret,
       program.s2s_postback_url ?? null,
+      program.campaign_key ?? null,
+      program.group_id ?? null,
+      program.traffic_source_id ?? null,
+      program.tags ?? null,
+      program.status ?? "active",
       program.created_at,
     )
     .run();
@@ -98,6 +107,10 @@ export async function updateProgram(
     name?: string;
     destination_url?: string | null;
     s2s_postback_url?: string | null;
+    group_id?: string | null;
+    traffic_source_id?: string | null;
+    tags?: string | null;
+    status?: string;
   },
 ): Promise<Program | null> {
   const existing = await getProgram(db, programId, userId);
@@ -113,13 +126,32 @@ export async function updateProgram(
       updates.s2s_postback_url === undefined
         ? existing.s2s_postback_url
         : updates.s2s_postback_url,
+    group_id: updates.group_id === undefined ? existing.group_id : updates.group_id,
+    traffic_source_id:
+      updates.traffic_source_id === undefined
+        ? existing.traffic_source_id
+        : updates.traffic_source_id,
+    tags: updates.tags === undefined ? existing.tags : updates.tags,
+    status: updates.status ?? existing.status,
   };
 
   await db
     .prepare(
-      "UPDATE programs SET name = ?, destination_url = ?, s2s_postback_url = ? WHERE id = ? AND user_id = ?",
+      `UPDATE programs SET name = ?, destination_url = ?, s2s_postback_url = ?,
+       group_id = ?, traffic_source_id = ?, tags = ?, status = ?
+       WHERE id = ? AND user_id = ?`,
     )
-    .bind(next.name, next.destination_url, next.s2s_postback_url, programId, userId)
+    .bind(
+      next.name,
+      next.destination_url,
+      next.s2s_postback_url,
+      next.group_id,
+      next.traffic_source_id,
+      next.tags,
+      next.status,
+      programId,
+      userId,
+    )
     .run();
 
   return getProgram(db, programId, userId);
