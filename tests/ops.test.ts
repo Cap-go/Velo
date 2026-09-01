@@ -1,6 +1,9 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { registerTestUser } from "./helpers";
 import { initSql } from "./schema";
+
+let authHeaders: Record<string, string>;
 
 const MERCHANT = "https://merchant.example.com/pricing";
 
@@ -28,19 +31,20 @@ describe("phase 5 ops", () => {
       DELETE FROM clicks;
       DELETE FROM affiliates;
       DELETE FROM programs;
+      DELETE FROM auth_tokens;
       DELETE FROM users;
     `);
+    ({ authHeaders } = await registerTestUser());
   });
 
   it("clones a campaign with paths", async () => {
-    const headers = { "Content-Type": "application/json" };
     const { program, convert_secret: _s } = await json<{
       program: { id: string; name: string };
       convert_secret: string;
     }>(
       await SELF.fetch("http://localhost/api/programs", {
         method: "POST",
-        headers,
+        headers: authHeaders,
         body: JSON.stringify({ name: "Original", destination_url: MERCHANT }),
       }),
     );
@@ -48,20 +52,20 @@ describe("phase 5 ops", () => {
     const lander = await json<{ lander: { id: string } }>(
       await SELF.fetch("http://localhost/api/entities/landers", {
         method: "POST",
-        headers,
+        headers: authHeaders,
         body: JSON.stringify({ name: "LP", url: "https://merchant.example.com/lp" }),
       }),
     );
 
     await SELF.fetch(`http://localhost/api/programs/${program.id}/paths`, {
       method: "POST",
-      headers,
+      headers: authHeaders,
       body: JSON.stringify({ name: "Path 1", flow_type: "lander", lander_id: lander.lander.id }),
     });
 
     const cloneRes = await SELF.fetch(`http://localhost/api/ops/programs/${program.id}/clone`, {
       method: "POST",
-      headers,
+      headers: authHeaders,
       body: JSON.stringify({ name: "Cloned" }),
     });
     expect(cloneRes.status).toBe(201);
@@ -73,25 +77,25 @@ describe("phase 5 ops", () => {
     expect(cloned.id).not.toBe(program.id);
 
     const rotation = await json<{ paths: Array<{ name: string }> }>(
-      await SELF.fetch(`http://localhost/api/programs/${cloned.id}/rotation`, { headers }),
+      await SELF.fetch(`http://localhost/api/programs/${cloned.id}/rotation`, { headers: authHeaders }),
     );
     expect(rotation.paths).toHaveLength(1);
     expect(rotation.paths[0]?.name).toBe("Path 1");
   });
 
   it("bulk updates campaign status", async () => {
-    const headers = { "Content-Type": "application/json" };
+    const headers = authHeaders;
     const { program } = await json<{ program: { id: string } }>(
       await SELF.fetch("http://localhost/api/programs", {
         method: "POST",
-        headers,
+        headers: authHeaders,
         body: JSON.stringify({ name: "Bulk Target", destination_url: MERCHANT }),
       }),
     );
 
     const bulkRes = await SELF.fetch("http://localhost/api/ops/programs/bulk", {
       method: "POST",
-      headers,
+      headers: authHeaders,
       body: JSON.stringify({ program_ids: [program.id], status: "paused" }),
     });
     expect(bulkRes.status).toBe(200);
@@ -105,18 +109,18 @@ describe("phase 5 ops", () => {
   });
 
   it("creates notes and team members", async () => {
-    const headers = { "Content-Type": "application/json" };
+    const headers = authHeaders;
     const { program } = await json<{ program: { id: string } }>(
       await SELF.fetch("http://localhost/api/programs", {
         method: "POST",
-        headers,
+        headers: authHeaders,
         body: JSON.stringify({ name: "Notes Campaign", destination_url: MERCHANT }),
       }),
     );
 
     const noteRes = await SELF.fetch("http://localhost/api/ops/notes", {
       method: "POST",
-      headers,
+      headers: authHeaders,
       body: JSON.stringify({
         entity_type: "program",
         entity_id: program.id,
@@ -135,7 +139,7 @@ describe("phase 5 ops", () => {
 
     const inviteRes = await SELF.fetch("http://localhost/api/ops/team", {
       method: "POST",
-      headers,
+      headers: authHeaders,
       body: JSON.stringify({ email: "viewer@example.com", role: "viewer" }),
     });
     expect(inviteRes.status).toBe(201);

@@ -16,16 +16,16 @@ migrations_dir = "migrations"
 
 [vars]
 APP_URL = "http://localhost:5173"
-# TEAM_DOMAIN = "https://yourteam.cloudflareaccess.com"
-# POLICY_AUD = "your-access-application-audience-tag"
+# AUTH_SECRET = "set-a-long-random-secret-in-production"
+# RESEND_API_KEY = "re_..."
+# EMAIL_FROM = "Capve <noreply@capve.app>"
 
 [env.production]
 # Keep worker name "velo" (wrangler defaults to velo-production otherwise).
 name = "velo"
 vars = { APP_URL = "https://capve.app" }
-# Set after configuring Zero Trust Access (path-based on /app and /api/programs*):
-# TEAM_DOMAIN = "https://yourteam.cloudflareaccess.com"
-# POLICY_AUD = "your-access-application-audience-tag"
+# AUTH_SECRET — set via `wrangler secret put AUTH_SECRET` in production
+# RESEND_API_KEY — optional; emails log to console when unset
 
 # Custom domains for production. With @cloudflare/vite-plugin, routes under
 # [env.production] are copied into dist/velo/wrangler.json only when the build

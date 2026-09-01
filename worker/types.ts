@@ -2,13 +2,16 @@ export type Env = {
   DB: D1Database;
   ASSETS: Fetcher;
   APP_URL: string;
-  TEAM_DOMAIN?: string;
-  POLICY_AUD?: string;
+  AUTH_SECRET?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
 };
 
 export type User = {
   id: string;
   email: string;
+  name: string | null;
+  email_verified: number;
   created_at: number;
 };
 

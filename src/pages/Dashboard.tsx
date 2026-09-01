@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { CampaignReportPanel } from "../components/CampaignReport";
 import { EntityPanel } from "../components/EntityPanel";
 import { PathEditor } from "../components/PathEditor";
@@ -35,7 +35,7 @@ const ENTITY_NAV: { key: EntityView; label: string }[] = [
 ];
 
 export function DashboardPage() {
-  const { user, accessRequired, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get("tab") as Tab) || "overview";
   const entity = (searchParams.get("entity") as EntityView) || "campaigns";
@@ -158,25 +158,8 @@ export function DashboardPage() {
     );
   }
 
-  if (!user && accessRequired) {
-    return (
-      <Shell>
-        <div className="mx-auto max-w-2xl px-6 py-16">
-          <h1 className="text-2xl font-bold">Sign in with Cloudflare Access</h1>
-          <p className="mt-3 text-[var(--velo-muted)]">
-            This dashboard requires Cloudflare Access. Sign in to continue.
-          </p>
-        </div>
-      </Shell>
-    );
-  }
-
   if (!user) {
-    return (
-      <Shell>
-        <div className="mx-auto max-w-6xl px-6 py-16 text-[var(--velo-muted)]">Loading...</div>
-      </Shell>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   async function createProgram(e: FormEvent) {
@@ -262,6 +245,16 @@ export function DashboardPage() {
             Docs
           </Link>
           <span className="hidden text-sm text-[var(--velo-muted)] sm:inline">{user.email}</span>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={async () => {
+              await logout();
+              window.location.href = "/login";
+            }}
+          >
+            Sign out
+          </button>
         </>
       }
     >

@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { registerTestUser } from "./helpers";
 import { initSql } from "./schema";
 
 const MERCHANT_DESTINATION = "https://merchant.example.com/pricing";
@@ -20,9 +21,9 @@ function cookieFrom(response: Response, name: string): string | undefined {
   return undefined;
 }
 
-async function createProgram() {
-  const authHeaders = { "Content-Type": "application/json" };
+let authHeaders: Record<string, string>;
 
+async function createProgram() {
   const programRes = await SELF.fetch("http://localhost/api/programs", {
     method: "POST",
     headers: authHeaders,
@@ -62,8 +63,10 @@ describe("affiliate tracking flow", () => {
       DELETE FROM clicks;
       DELETE FROM affiliates;
       DELETE FROM programs;
+      DELETE FROM auth_tokens;
       DELETE FROM users;
     `);
+    ({ authHeaders } = await registerTestUser());
   });
 
   it("program → affiliate → click → convert → stats", async () => {

@@ -2,8 +2,23 @@ export const initSql = `
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
+  password_hash TEXT,
+  name TEXT,
+  email_verified INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  token_hash TEXT NOT NULL UNIQUE,
+  kind TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_hash ON auth_tokens(token_hash);
 
 CREATE TABLE IF NOT EXISTS programs (
   id TEXT PRIMARY KEY,

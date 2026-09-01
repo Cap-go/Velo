@@ -1,6 +1,9 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { registerTestUser } from "./helpers";
 import { initSql } from "./schema";
+
+let authHeaders: Record<string, string>;
 
 async function json<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
@@ -28,14 +31,16 @@ describe("phase 2 entities", () => {
       DELETE FROM clicks;
       DELETE FROM affiliates;
       DELETE FROM programs;
+      DELETE FROM auth_tokens;
       DELETE FROM users;
     `);
+    ({ authHeaders } = await registerTestUser());
   });
 
   it("creates traffic source, network, lander, offer, group, and campaign with key", async () => {
     const sourceRes = await SELF.fetch("http://localhost/api/entities/traffic-sources", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({ name: "Facebook Ads", cost_type: "cpc", default_cost_cents: 45 }),
     });
     expect(sourceRes.status).toBe(201);
@@ -43,7 +48,7 @@ describe("phase 2 entities", () => {
 
     const networkRes = await SELF.fetch("http://localhost/api/entities/networks", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
         name: "Test Network",
         postback_url_template: "https://net.example/pb?c={click_id}",
@@ -53,14 +58,14 @@ describe("phase 2 entities", () => {
 
     const landerRes = await SELF.fetch("http://localhost/api/entities/landers", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({ name: "LP 1", url: "https://merchant.example/lp" }),
     });
     expect(landerRes.status).toBe(201);
 
     const offerRes = await SELF.fetch("http://localhost/api/entities/offers", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
         name: "Main Offer",
         url: "https://network.example/offer?click={click_id}",
@@ -71,14 +76,14 @@ describe("phase 2 entities", () => {
 
     const groupRes = await SELF.fetch("http://localhost/api/entities/groups", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({ name: "US Campaigns" }),
     });
     expect(groupRes.status).toBe(201);
 
     const campaignRes = await SELF.fetch("http://localhost/api/campaigns", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({
         name: "Summer Promo",
         destination_url: "https://merchant.example/pricing",

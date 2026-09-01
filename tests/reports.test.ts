@@ -1,6 +1,9 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { registerTestUser } from "./helpers";
 import { initSql } from "./schema";
+
+let authHeaders: Record<string, string>;
 
 const MERCHANT = "https://merchant.example.com/pricing";
 const LANDER = "https://merchant.example.com/lander?ref={click_id}";
@@ -30,12 +33,14 @@ describe("phase 4 reporting", () => {
       DELETE FROM traffic_sources;
       DELETE FROM groups;
       DELETE FROM programs;
+      DELETE FROM auth_tokens;
       DELETE FROM users;
     `);
+    ({ authHeaders } = await registerTestUser());
   });
 
   it("returns campaign metrics with cost, profit, and ROI", async () => {
-    const headers = { "Content-Type": "application/json" };
+    const headers = authHeaders;
 
     const sourceRes = await SELF.fetch("http://localhost/api/entities/traffic-sources", {
       method: "POST",
@@ -129,7 +134,9 @@ describe("phase 4 reporting", () => {
   });
 
   it("exports campaigns CSV", async () => {
-    const res = await SELF.fetch("http://localhost/api/reports/campaigns.csv");
+    const res = await SELF.fetch("http://localhost/api/reports/campaigns.csv", {
+      headers: authHeaders,
+    });
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("text/csv");
     const text = await res.text();
@@ -138,7 +145,7 @@ describe("phase 4 reporting", () => {
   });
 
   it("returns daily trends for a campaign", async () => {
-    const headers = { "Content-Type": "application/json" };
+    const headers = authHeaders;
     const programRes = await SELF.fetch("http://localhost/api/programs", {
       method: "POST",
       headers,

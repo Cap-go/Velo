@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { registerTestUser } from "./helpers";
 import { initSql } from "./schema";
 
 const MERCHANT_DESTINATION = "https://merchant.example.com/pricing";
@@ -10,8 +11,9 @@ async function json<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+let authHeaders: Record<string, string>;
+
 async function setupProgram(suffix = "") {
-  const authHeaders = { "Content-Type": "application/json" };
   const programRes = await SELF.fetch("http://localhost/api/programs", {
     method: "POST",
     headers: authHeaders,
@@ -69,8 +71,10 @@ describe("campaign routing", () => {
       DELETE FROM offers;
       DELETE FROM landers;
       DELETE FROM programs;
+      DELETE FROM auth_tokens;
       DELETE FROM users;
     `);
+    ({ authHeaders } = await registerTestUser());
   });
 
   it("redirects through lander path with click_id macro", async () => {

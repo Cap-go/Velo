@@ -13,30 +13,51 @@ import { affiliateCode, conversionRate, id, isUniqueConstraintError } from "../l
 const PROGRAM_COLUMNS =
   "id, user_id, name, slug, api_key, destination_url, s2s_postback_url, campaign_key, group_id, traffic_source_id, tags, status, created_at";
 
-export async function getUserByEmail(
-  db: D1Database,
-  email: string,
-): Promise<{ id: string; email: string; created_at: number } | null> {
+const USER_COLUMNS = "id, email, name, email_verified, created_at";
+
+export async function getUserByEmail(db: D1Database, email: string) {
   return db
-    .prepare("SELECT id, email, created_at FROM users WHERE email = ?")
+    .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE email = ?`)
     .bind(email.toLowerCase())
-    .first();
+    .first<{ id: string; email: string; name: string | null; email_verified: number; created_at: number }>();
 }
 
 export async function getUserById(db: D1Database, userId: string) {
   return db
-    .prepare("SELECT id, email, created_at FROM users WHERE id = ?")
+    .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE id = ?`)
     .bind(userId)
-    .first<{ id: string; email: string; created_at: number }>();
+    .first<{ id: string; email: string; name: string | null; email_verified: number; created_at: number }>();
+}
+
+export async function getUserPasswordHash(db: D1Database, email: string) {
+  return db
+    .prepare("SELECT password_hash FROM users WHERE email = ?")
+    .bind(email.toLowerCase())
+    .first<{ password_hash: string | null }>();
 }
 
 export async function createUser(
   db: D1Database,
-  user: { id: string; email: string; created_at: number },
+  user: {
+    id: string;
+    email: string;
+    password_hash: string;
+    name?: string | null;
+    created_at: number;
+  },
 ) {
   await db
-    .prepare("INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)")
-    .bind(user.id, user.email.toLowerCase(), user.created_at)
+    .prepare(
+      "INSERT INTO users (id, email, password_hash, name, email_verified, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+    )
+    .bind(user.id, user.email.toLowerCase(), user.password_hash, user.name ?? null, user.created_at)
+    .run();
+}
+
+export async function updateUserPassword(db: D1Database, userId: string, passwordHash: string) {
+  await db
+    .prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+    .bind(passwordHash, userId)
     .run();
 }
 

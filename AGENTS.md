@@ -9,7 +9,7 @@ Capve = **open-source, self-hosted** affiliate tracker for indie/SaaS. **Not** C
 | Path | Purpose |
 | --- | --- |
 | `worker/` | Hono API, redirect, convert, Access auth |
-| `worker/lib/access.ts` | Cloudflare Access JWT validation |
+| `worker/lib/access.ts` | Session auth (`requireUser`, team roles) |
 | `src/` | React UI (homepage `/`, dashboard `/app`) |
 | `src/lib/constants.ts` | Deploy button + GitHub URLs |
 | `migrations/` | D1 schema |
@@ -36,7 +36,7 @@ bun run typecheck
 bun run build
 ```
 
-Local dev skips Access when `APP_URL` is localhost.
+Local dev uses email/password sessions (`/login`, `/register`). Set `AUTH_SECRET` in production.
 
 ## Finish deploy (for a later agent)
 
@@ -44,12 +44,12 @@ Local dev skips Access when `APP_URL` is localhost.
 2. **D1:** `velo-db` — id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` on account `9ee3d7479a3c359681e3fab2c8cb22c0` (see `wrangler.toml`).
 3. Merge PR to `main` (only when CI green and review approved).
 4. Deploy workflow: migrations → `wrangler deploy --env production --var APP_URL:https://capve.app`
-5. Martin configures Zero Trust Access (path-based on `/app*`, `/api/programs*`, `/api/campaigns*`, `/api/entities*`, `/api/reports*`, `/api/ops*`, `/api/auth*`) and sets `TEAM_DOMAIN` + `POLICY_AUD` on the Worker.
+5. Set Worker secrets: `AUTH_SECRET` (required), `RESEND_API_KEY` + `EMAIL_FROM` (for welcome/reset emails).
 6. Smoke test at **https://capve.app**:
    - `/` loads homepage with Deploy button
    - `/r/:code` → merchant URL with `velo_ref=`
    - POST convert with `X-Program-Secret` + `affiliate_code` → stats update
-   - `/app` works after Access is configured
+   - `/app` works after sign-in (register at `/register`)
 
 ## Rules when changing code
 
@@ -57,7 +57,7 @@ Local dev skips Access when `APP_URL` is localhost.
 - Do not add Stripe, pricing, payouts, social login, or Affonso integration unless asked
 - Keep redirect allowlist logic — never redirect to arbitrary hosts
 - Conversions: `affiliate_code` + `X-Program-Secret` (server-only); CORS on convert
-- Dashboard APIs fail closed without valid Access JWT in production (`worker/lib/access.ts`)
+- Dashboard APIs require a valid session cookie (`worker/lib/access.ts`)
 - Public routes must stay public: `/`, `/r/*`, `/api/v1/convert`, `/api/v1/snippet`
 - Run `bun run test` and keep CI green
 - Use version tags for GitHub Actions, not SHA pins

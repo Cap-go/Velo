@@ -244,7 +244,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  me: () => request<{ user: User | null; access_required?: boolean }>("/api/auth/me"),
+  me: () => request<{ user: User | null }>("/api/auth/me"),
+  register: (body: { email: string; password: string; name?: string }) =>
+    request<{ user: User }>("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
+  login: (email: string, password: string) =>
+    request<{ user: User }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
+  forgotPassword: (email: string) =>
+    request<{ ok: boolean; message: string }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, password: string) =>
+    request<{ user: User }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
   programs: () => request<{ programs: Program[] }>("/api/programs"),
   createProgram: (name: string, destinationUrl: string) =>
     request<{ program: Program; convert_secret: string }>("/api/programs", {
