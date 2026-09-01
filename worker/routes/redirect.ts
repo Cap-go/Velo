@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { getAffiliateByCode, getProgramById, recordClick } from "../db/queries";
+import { getTriggersForEvent } from "../db/ops";
 import {
   getOrCreateCampaignAffiliate,
   getOrCreateRotation,
@@ -16,6 +17,7 @@ import {
   selectPath,
   visitorCookie,
 } from "../lib/routing";
+import { fireTriggerWebhooks } from "../lib/triggers";
 import { id } from "../lib/utils";
 import { resolveRedirectTarget } from "../lib/urls";
 
@@ -84,6 +86,22 @@ async function handleClickRedirect(
     offer_id: offerId,
     created_at: Date.now(),
   });
+
+  const programFull = await getProgramById(c.env.DB, program.id);
+  if (programFull) {
+    const clickTriggers = await getTriggersForEvent(
+      c.env.DB,
+      programFull.user_id,
+      program.id,
+      "click",
+    );
+    await fireTriggerWebhooks(clickTriggers, {
+      click_id: clickId,
+      velo_ref: affiliate.code,
+      campaign_key: program.campaign_key,
+      program_id: program.id,
+    });
+  }
 
   const headers = new Headers();
   headers.set("Location", destination.url.toString());
