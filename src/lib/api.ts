@@ -129,6 +129,45 @@ export type RotationConfig = {
   paths: Path[];
 };
 
+export type CampaignMetrics = {
+  clicks: number;
+  lp_clicks: number;
+  leads: number;
+  revenue_cents: number;
+  cost_cents: number;
+  profit_cents: number;
+  lp_ctr: number;
+  cr: number;
+  epc_cents: number;
+  cpc_cents: number;
+  roi: number;
+};
+
+export type CampaignReportRow = Program & {
+  group_name: string | null;
+  traffic_source_name: string | null;
+  cost_type: "cpc" | "cpm" | "cpa" | null;
+  default_cost_cents: number;
+  metrics: CampaignMetrics;
+};
+
+export type TrendPoint = {
+  date: string;
+  clicks: number;
+  lp_clicks: number;
+  leads: number;
+  revenue_cents: number;
+  cost_cents: number;
+};
+
+export type ReportFilters = {
+  from?: number;
+  to?: number;
+  group_id?: string;
+  traffic_source_id?: string;
+  status?: string;
+};
+
 export type Affiliate = {
   id: string;
   program_id: string;
@@ -284,6 +323,27 @@ export const api = {
     request<{ ok: boolean }>(`/api/programs/${programId}/paths/${pathId}`, {
       method: "DELETE",
     }),
+  campaignReports: (filters: ReportFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from != null) params.set("from", String(filters.from));
+    if (filters.to != null) params.set("to", String(filters.to));
+    if (filters.group_id) params.set("group_id", filters.group_id);
+    if (filters.traffic_source_id) params.set("traffic_source_id", filters.traffic_source_id);
+    if (filters.status) params.set("status", filters.status);
+    const qs = params.toString();
+    return request<{ campaigns: CampaignReportRow[] }>(
+      `/api/reports/campaigns${qs ? `?${qs}` : ""}`,
+    );
+  },
+  campaignTrends: (programId: string, filters: Pick<ReportFilters, "from" | "to"> = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from != null) params.set("from", String(filters.from));
+    if (filters.to != null) params.set("to", String(filters.to));
+    const qs = params.toString();
+    return request<{ trends: TrendPoint[] }>(
+      `/api/reports/campaigns/${programId}/trends${qs ? `?${qs}` : ""}`,
+    );
+  },
 };
 
 export function formatMoney(cents: number): string {

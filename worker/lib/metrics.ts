@@ -1,0 +1,96 @@
+export type CampaignMetrics = {
+  clicks: number;
+  lp_clicks: number;
+  leads: number;
+  revenue_cents: number;
+  cost_cents: number;
+  profit_cents: number;
+  lp_ctr: number;
+  cr: number;
+  epc_cents: number;
+  cpc_cents: number;
+  roi: number;
+};
+
+export function computeMetrics(input: {
+  clicks: number;
+  lp_clicks: number;
+  leads: number;
+  revenue_cents: number;
+  cost_cents: number;
+}): CampaignMetrics {
+  const { clicks, lp_clicks, leads, revenue_cents, cost_cents } = input;
+  const profit_cents = revenue_cents - cost_cents;
+
+  return {
+    clicks,
+    lp_clicks,
+    leads,
+    revenue_cents,
+    cost_cents,
+    profit_cents,
+    lp_ctr: clicks > 0 ? round2((lp_clicks / clicks) * 100) : 0,
+    cr: clicks > 0 ? round2((leads / clicks) * 100) : 0,
+    epc_cents: clicks > 0 ? Math.round(revenue_cents / clicks) : 0,
+    cpc_cents: clicks > 0 ? Math.round(cost_cents / clicks) : 0,
+    roi: cost_cents > 0 ? round2((profit_cents / cost_cents) * 100) : 0,
+  };
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+export function costForTraffic(
+  costType: "cpc" | "cpm" | "cpa",
+  defaultCostCents: number,
+  clicks: number,
+  leads: number,
+): number {
+  switch (costType) {
+    case "cpc":
+      return clicks * defaultCostCents;
+    case "cpm":
+      return Math.round((clicks * defaultCostCents) / 1000);
+    case "cpa":
+      return leads * defaultCostCents;
+    default:
+      return 0;
+  }
+}
+
+export type ReportFilters = {
+  from?: number;
+  to?: number;
+  group_id?: string;
+  traffic_source_id?: string;
+  status?: string;
+};
+
+export function parseReportFilters(query: Record<string, string | undefined>): ReportFilters {
+  const fromRaw = query.from?.trim();
+  const toRaw = query.to?.trim();
+  return {
+    from: fromRaw ? Number(fromRaw) : undefined,
+    to: toRaw ? Number(toRaw) : undefined,
+    group_id: query.group_id?.trim() || undefined,
+    traffic_source_id: query.traffic_source_id?.trim() || undefined,
+    status: query.status?.trim() || undefined,
+  };
+}
+
+export function csvEscape(value: string | number | null | undefined): string {
+  const text = value == null ? "" : String(value);
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+export function toCsv(headers: string[], rows: Array<Array<string | number>>): string {
+  const lines = [headers.join(",")];
+  for (const row of rows) {
+    lines.push(row.map((cell) => csvEscape(cell)).join(","));
+  }
+  return `${lines.join("\n")}\n`;
+}

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { CampaignReportPanel } from "../components/CampaignReport";
 import { EntityPanel } from "../components/EntityPanel";
 import { PathEditor } from "../components/PathEditor";
 import { CodeBlock } from "../components/CodeBlock";
@@ -19,10 +20,11 @@ import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
 type Tab = "overview" | "clicklog" | "conversions";
-type EntityView = "campaigns" | "sources" | "networks" | "offers" | "landers" | "groups";
+type EntityView = "campaigns" | "reports" | "sources" | "networks" | "offers" | "landers" | "groups";
 
 const ENTITY_NAV: { key: EntityView; label: string }[] = [
   { key: "campaigns", label: "Campaigns" },
+  { key: "reports", label: "Reports" },
   { key: "sources", label: "Traffic sources" },
   { key: "networks", label: "Aff. networks" },
   { key: "offers", label: "Offers" },
@@ -291,7 +293,11 @@ export function DashboardPage() {
         <ErrorBox message={error} />
 
         {entity !== "campaigns" ? (
-          <EntityPanel kind={entity} />
+          entity === "reports" ? (
+            <CampaignReportPanel />
+          ) : (
+            <EntityPanel kind={entity} />
+          )
         ) : (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
           <section className="card p-5">
@@ -343,9 +349,9 @@ export function DashboardPage() {
                 Create your first program to start tracking.
               </div>
             ) : tab === "clicklog" ? (
-              <ClicklogTable clicks={clicks} />
+              <ClicklogTable clicks={clicks} programId={selectedId} />
             ) : tab === "conversions" ? (
-              <ConversionsTable conversions={conversions} />
+              <ConversionsTable conversions={conversions} programId={selectedId} />
             ) : (
               <OverviewPanel
                 busy={busy}
@@ -548,10 +554,18 @@ function OverviewPanel({
   );
 }
 
-function ClicklogTable({ clicks }: { clicks: ClickLogRow[] }) {
+function ClicklogTable({ clicks, programId }: { clicks: ClickLogRow[]; programId: string }) {
   return (
     <div className="card overflow-hidden p-5">
-      <h2 className="font-semibold">Clicklog</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold">Clicklog</h2>
+        <a
+          className="btn btn-secondary text-sm"
+          href={`/api/reports/clicks.csv?program_id=${programId}`}
+        >
+          Export CSV
+        </a>
+      </div>
       <div className="mt-4 overflow-x-auto">
         <table className="table">
           <thead>
@@ -590,10 +604,24 @@ function ClicklogTable({ clicks }: { clicks: ClickLogRow[] }) {
   );
 }
 
-function ConversionsTable({ conversions }: { conversions: ConversionLogRow[] }) {
+function ConversionsTable({
+  conversions,
+  programId,
+}: {
+  conversions: ConversionLogRow[];
+  programId: string;
+}) {
   return (
     <div className="card overflow-hidden p-5">
-      <h2 className="font-semibold">Conversions</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold">Conversions</h2>
+        <a
+          className="btn btn-secondary text-sm"
+          href={`/api/reports/conversions.csv?program_id=${programId}`}
+        >
+          Export CSV
+        </a>
+      </div>
       <div className="mt-4 overflow-x-auto">
         <table className="table">
           <thead>
