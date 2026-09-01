@@ -49,7 +49,7 @@ jobs:
       APPLY_VARS: "1"
       WORKER_NAME: velo
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:

@@ -23,7 +23,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: 9ee3d7479a3c359681e3fab2c8cb22c0
       CLOUDFLARE_ENV: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.workflow_run.head_sha }}
 
@@ -44,7 +44,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 9ee3d7479a3c359681e3fab2c8cb22c0
