@@ -31,10 +31,14 @@ describe("access setup builders", () => {
     expect(uris).toEqual([
       "capve.app/app*",
       "capve.app/api/programs*",
+      "capve.app/api/campaigns*",
+      "capve.app/api/entities*",
+      "capve.app/api/reports*",
+      "capve.app/api/ops*",
       "capve.app/api/auth*",
     ]);
 
-    expect(uris.some((u) => u.includes("/r"))).toBe(false);
+    expect(uris.some((u) => /\/r(\/|$)/.test(u))).toBe(false);
     expect(uris.some((u) => u.includes("/api/v1"))).toBe(false);
     expect(uris.some((u) => u.includes("/api/health"))).toBe(false);
 
@@ -63,7 +67,7 @@ describe("access setup builders", () => {
     expect(body.domain).toBe("capve.app/app*");
     expect(body.session_duration).toBe("24h");
     const destinations = body.destinations as { uri: string }[];
-    expect(destinations.length).toBe(3);
+    expect(destinations.length).toBe(7);
     const policies = body.policies as { include: unknown[] }[];
     expect(policies[0].include).toEqual([{ email_domain: { domain: "capgo.app" } }]);
   });

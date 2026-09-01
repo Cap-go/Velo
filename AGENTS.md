@@ -44,7 +44,7 @@ Local dev skips Access when `APP_URL` is localhost.
 2. **D1:** `velo-db` — id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` on account `9ee3d7479a3c359681e3fab2c8cb22c0` (see `wrangler.toml`).
 3. Merge PR to `main` (only when CI green and review approved).
 4. Deploy workflow: migrations → `wrangler deploy --env production --var APP_URL:https://capve.app`
-5. Martin configures Zero Trust Access (path-based on `/app*` + `/api/programs*`) and sets `TEAM_DOMAIN` + `POLICY_AUD` on the Worker.
+5. Martin configures Zero Trust Access (path-based on `/app*`, `/api/programs*`, `/api/campaigns*`, `/api/entities*`, `/api/reports*`, `/api/ops*`, `/api/auth*`) and sets `TEAM_DOMAIN` + `POLICY_AUD` on the Worker.
 6. Smoke test at **https://capve.app**:
    - `/` loads homepage with Deploy button
    - `/r/:code` → merchant URL with `velo_ref=`

@@ -37,13 +37,13 @@ There is **no SaaS signup**, **no email/password login**, and **no pricing**.
 
 **Public routes** (must stay unauthenticated): `/`, `/r/:code`, `POST /api/v1/convert` + OPTIONS, `GET /api/v1/snippet`, `GET /api/health`.
 
-**Protected** (Access + Worker JWT validation): `/app`, `/api/programs*`, `GET /api/auth/me`.
+**Protected** (Access + Worker JWT validation): `/app`, `/api/programs*`, `/api/campaigns*`, `/api/entities*`, `/api/reports*`, `/api/ops*`, `GET /api/auth/me`.
 
 ### Install
 
 - **One-click:** [Deploy to Cloudflare](https://deploy.workers.cloudflare.com/?url=https://github.com/Cap-go/Capve) provisions Worker + D1 on the visitor’s account.
 - **This repo’s CI** deploys to `capve.app` (Digital Shift demo/homepage install) using the existing D1 id in `wrangler.toml`.
-- After deploy, run `bun run setup-access` (or the **Setup Cloudflare Access** GitHub Action) to apply path-based Zero Trust Access on `/app*`, `/api/programs*`, and `/api/auth*` — not the whole Worker. The script writes `TEAM_DOMAIN` and `POLICY_AUD` to the Worker so JWT verification is enforced.
+- After deploy, run `bun run setup-access` (or the **Setup Cloudflare Access** GitHub Action) to apply path-based Zero Trust Access on `/app*`, `/api/programs*`, `/api/campaigns*`, `/api/entities*`, `/api/reports*`, `/api/ops*`, and `/api/auth*` — not the whole Worker. The script writes `TEAM_DOMAIN` and `POLICY_AUD` to the Worker so JWT verification is enforced.
 
 ### Tests (`bun run test`)
 

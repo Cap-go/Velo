@@ -5,7 +5,15 @@ export const APP_NAME = "Capve";
 export const LEGACY_APP_NAME = "Velo";
 export const POLICY_NAME = "Allow operators";
 
-const PROTECTED_PATHS = ["/app*", "/api/programs*", "/api/auth*"];
+const PROTECTED_PATHS = [
+  "/app*",
+  "/api/programs*",
+  "/api/campaigns*",
+  "/api/entities*",
+  "/api/reports*",
+  "/api/ops*",
+  "/api/auth*",
+];
 
 /** Paths that must stay public — used by tests and validation. */
 export const FORBIDDEN_PROTECTED_URI_PATTERNS = [
