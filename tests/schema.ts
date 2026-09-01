@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS programs (
   api_key TEXT NOT NULL,
   destination_url TEXT,
   convert_secret TEXT,
+  s2s_postback_url TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -31,7 +32,10 @@ CREATE INDEX IF NOT EXISTS idx_affiliates_code ON affiliates(code);
 
 CREATE TABLE IF NOT EXISTS clicks (
   id TEXT PRIMARY KEY,
+  program_id TEXT NOT NULL REFERENCES programs(id),
   affiliate_id TEXT NOT NULL REFERENCES affiliates(id),
+  ip TEXT,
+  user_agent TEXT,
   created_at INTEGER NOT NULL
 );
 
@@ -41,8 +45,12 @@ CREATE TABLE IF NOT EXISTS conversions (
   id TEXT PRIMARY KEY,
   program_id TEXT NOT NULL REFERENCES programs(id),
   affiliate_id TEXT NOT NULL REFERENCES affiliates(id),
+  click_id TEXT REFERENCES clicks(id),
   order_id TEXT NOT NULL,
   amount_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'lead',
+  status2 TEXT,
+  currency TEXT NOT NULL DEFAULT 'USD',
   created_at INTEGER NOT NULL,
   UNIQUE(program_id, order_id)
 );

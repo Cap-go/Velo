@@ -7,7 +7,42 @@ export type Program = {
   slug: string;
   api_key: string;
   destination_url: string | null;
+  s2s_postback_url: string | null;
   created_at: number;
+};
+
+export type ClickLogRow = {
+  id: string;
+  program_id: string;
+  affiliate_id: string;
+  ip: string | null;
+  user_agent: string | null;
+  created_at: number;
+  affiliate_name: string;
+  affiliate_code: string;
+  converted: boolean;
+};
+
+export type ConversionLogRow = {
+  id: string;
+  program_id: string;
+  affiliate_id: string;
+  click_id: string | null;
+  order_id: string;
+  amount_cents: number;
+  status: string;
+  status2: string | null;
+  currency: string;
+  created_at: number;
+  affiliate_name: string;
+  affiliate_code: string;
+};
+
+export type ProgramTracking = {
+  postback_url: string;
+  s2s_postback_url: string | null;
+  offer_url_macro: string;
+  redirect_params: string[];
 };
 
 export type Affiliate = {
@@ -61,11 +96,22 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, destination_url: destinationUrl }),
     }),
-  updateProgram: (programId: string, data: { name?: string; destination_url?: string }) =>
+  updateProgram: (
+    programId: string,
+    data: { name?: string; destination_url?: string; s2s_postback_url?: string | null },
+  ) =>
     request<{ program: Program }>(`/api/programs/${programId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  tracking: (programId: string) =>
+    request<{ tracking: ProgramTracking }>(`/api/programs/${programId}/tracking`),
+  clicks: (programId: string, limit = 50) =>
+    request<{ clicks: ClickLogRow[] }>(`/api/programs/${programId}/clicks?limit=${limit}`),
+  conversions: (programId: string, limit = 50) =>
+    request<{ conversions: ConversionLogRow[] }>(
+      `/api/programs/${programId}/conversions?limit=${limit}`,
+    ),
   stats: (programId: string) => request<ProgramStats>(`/api/programs/${programId}/stats`),
   createAffiliate: (programId: string, name: string) =>
     request<{ affiliate: Affiliate; tracking_url: string }>(

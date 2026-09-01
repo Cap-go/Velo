@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { getProgramByConvertSecret } from "../db/queries";
 import {
-  getAffiliateByCode,
-  getProgramByConvertSecret,
-  recordConversion,
-} from "../db/queries";
+  createConversion,
+  resolveAffiliateByCode,
+  resolveAffiliateFromClick,
+} from "../lib/conversion";
 import type { Env } from "../types";
 import { readAffiliateCookie } from "../lib/auth";
-import { id } from "../lib/utils";
 
 const convert = new Hono<{ Bindings: Env }>();
 
@@ -36,6 +36,12 @@ convert.post("/", async (c) => {
     order_id?: string;
     amount?: number;
     affiliate_code?: string;
+    click_id?: string;
+    cnv_id?: string;
+    status?: string;
+    status2?: string;
+    currency?: string;
+    disable_postback?: boolean;
   }>();
 
   const orderId = body.order_id?.trim();
@@ -45,38 +51,43 @@ convert.post("/", async (c) => {
     return c.json({ error: "order_id and amount (number >= 0) required" }, 400);
   }
 
-  const affiliateCode =
-    body.affiliate_code?.trim() || readAffiliateCookie(c.req.header("Cookie") ?? null);
+  const clickId = body.click_id?.trim() || body.cnv_id?.trim();
+  let affiliate: { id: string; code: string };
+  let resolvedClickId: string | null = null;
 
-  if (!affiliateCode) {
-    return c.json({ error: "No affiliate attribution (affiliate_code required)" }, 400);
+  if (clickId) {
+    const resolved = await resolveAffiliateFromClick(c.env.DB, clickId, program.id);
+    if (!resolved) {
+      return c.json({ error: "Click not found for this program" }, 404);
+    }
+    affiliate = resolved.affiliate;
+    resolvedClickId = resolved.click.id;
+  } else {
+    const affiliateCode =
+      body.affiliate_code?.trim() || readAffiliateCookie(c.req.header("Cookie") ?? null);
+    if (!affiliateCode) {
+      return c.json({ error: "affiliate_code or click_id required" }, 400);
+    }
+    const resolved = await resolveAffiliateByCode(c.env.DB, program.id, affiliateCode);
+    if (!resolved) {
+      return c.json({ error: "Affiliate not found for this program" }, 404);
+    }
+    affiliate = resolved.affiliate;
   }
 
-  const affiliate = await getAffiliateByCode(c.env.DB, affiliateCode);
-  if (!affiliate || affiliate.program_id !== program.id) {
-    return c.json({ error: "Affiliate not found for this program" }, 404);
-  }
-
-  const amountCents = Math.round(amount * 100);
-  const status = await recordConversion(c.env.DB, {
-    id: id("cnv"),
+  const result = await createConversion(c.env.DB, program, affiliate, {
     program_id: program.id,
     affiliate_id: affiliate.id,
+    click_id: resolvedClickId,
     order_id: orderId,
-    amount_cents: amountCents,
-    created_at: Date.now(),
+    amount,
+    status: body.status?.trim() || "lead",
+    status2: body.status2?.trim() || null,
+    currency: body.currency?.trim() || "USD",
+    disable_s2s: body.disable_postback === true,
   });
 
-  return c.json({
-    ok: true,
-    status,
-    conversion: {
-      affiliate_code: affiliate.code,
-      order_id: orderId,
-      amount,
-      amount_cents: amountCents,
-    },
-  });
+  return c.json({ ok: true, ...result });
 });
 
 export { convert };

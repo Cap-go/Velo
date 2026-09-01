@@ -1,8 +1,16 @@
-import type { Affiliate, AffiliateStats, Program, ProgramStats } from "../types";
+import type {
+  Affiliate,
+  AffiliateStats,
+  Click,
+  ClickLogRow,
+  ConversionLogRow,
+  Program,
+  ProgramStats,
+} from "../types";
 import { affiliateCode, conversionRate, id, isUniqueConstraintError } from "../lib/utils";
 
 const PROGRAM_COLUMNS =
-  "id, user_id, name, slug, api_key, destination_url, created_at";
+  "id, user_id, name, slug, api_key, destination_url, s2s_postback_url, created_at";
 
 export async function getUserByEmail(
   db: D1Database,
@@ -66,7 +74,7 @@ export async function createProgram(
 ) {
   await db
     .prepare(
-      "INSERT INTO programs (id, user_id, name, slug, api_key, destination_url, convert_secret, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO programs (id, user_id, name, slug, api_key, destination_url, convert_secret, s2s_postback_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       program.id,
@@ -76,6 +84,7 @@ export async function createProgram(
       program.api_key,
       program.destination_url,
       program.convert_secret,
+      program.s2s_postback_url ?? null,
       program.created_at,
     )
     .run();
@@ -85,7 +94,11 @@ export async function updateProgram(
   db: D1Database,
   programId: string,
   userId: string,
-  updates: { name?: string; destination_url?: string | null },
+  updates: {
+    name?: string;
+    destination_url?: string | null;
+    s2s_postback_url?: string | null;
+  },
 ): Promise<Program | null> {
   const existing = await getProgram(db, programId, userId);
   if (!existing) return null;
@@ -96,11 +109,17 @@ export async function updateProgram(
       updates.destination_url === undefined
         ? existing.destination_url
         : updates.destination_url,
+    s2s_postback_url:
+      updates.s2s_postback_url === undefined
+        ? existing.s2s_postback_url
+        : updates.s2s_postback_url,
   };
 
   await db
-    .prepare("UPDATE programs SET name = ?, destination_url = ? WHERE id = ? AND user_id = ?")
-    .bind(next.name, next.destination_url, programId, userId)
+    .prepare(
+      "UPDATE programs SET name = ?, destination_url = ?, s2s_postback_url = ? WHERE id = ? AND user_id = ?",
+    )
+    .bind(next.name, next.destination_url, next.s2s_postback_url, programId, userId)
     .run();
 
   return getProgram(db, programId, userId);
@@ -154,38 +173,76 @@ export async function createAffiliateWithUniqueCode(
   throw new Error("Could not generate unique affiliate code");
 }
 
-export async function recordClick(
-  db: D1Database,
-  click: { id: string; affiliate_id: string; created_at: number },
-) {
-  await db
-    .prepare("INSERT INTO clicks (id, affiliate_id, created_at) VALUES (?, ?, ?)")
-    .bind(click.id, click.affiliate_id, click.created_at)
-    .run();
+export async function getClickById(db: D1Database, clickId: string): Promise<Click | null> {
+  return db
+    .prepare(
+      "SELECT id, program_id, affiliate_id, ip, user_agent, created_at FROM clicks WHERE id = ?",
+    )
+    .bind(clickId)
+    .first<Click>();
 }
 
-export async function recordConversion(
+export async function recordClick(
   db: D1Database,
-  conversion: {
+  click: {
     id: string;
     program_id: string;
     affiliate_id: string;
-    order_id: string;
-    amount_cents: number;
+    ip?: string | null;
+    user_agent?: string | null;
     created_at: number;
   },
+) {
+  await db
+    .prepare(
+      "INSERT INTO clicks (id, program_id, affiliate_id, ip, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      click.id,
+      click.program_id,
+      click.affiliate_id,
+      click.ip ?? null,
+      click.user_agent ?? null,
+      click.created_at,
+    )
+    .run();
+}
+
+export type ConversionInput = {
+  id: string;
+  program_id: string;
+  affiliate_id: string;
+  click_id?: string | null;
+  order_id: string;
+  amount_cents: number;
+  status?: string;
+  status2?: string | null;
+  currency?: string;
+  created_at: number;
+};
+
+export async function recordConversion(
+  db: D1Database,
+  conversion: ConversionInput,
 ): Promise<"created" | "duplicate"> {
   try {
     await db
       .prepare(
-        "INSERT INTO conversions (id, program_id, affiliate_id, order_id, amount_cents, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        `INSERT INTO conversions (
+          id, program_id, affiliate_id, click_id, order_id,
+          amount_cents, status, status2, currency, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         conversion.id,
         conversion.program_id,
         conversion.affiliate_id,
+        conversion.click_id ?? null,
         conversion.order_id,
         conversion.amount_cents,
+        conversion.status ?? "lead",
+        conversion.status2 ?? null,
+        conversion.currency ?? "USD",
         conversion.created_at,
       )
       .run();
@@ -196,6 +253,73 @@ export async function recordConversion(
     }
     throw error;
   }
+}
+
+export async function listClickLog(
+  db: D1Database,
+  programId: string,
+  limit = 50,
+  offset = 0,
+): Promise<ClickLogRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT
+        c.id, c.program_id, c.affiliate_id, c.ip, c.user_agent, c.created_at,
+        a.name AS affiliate_name, a.code AS affiliate_code,
+        EXISTS(SELECT 1 FROM conversions cv WHERE cv.click_id = c.id) AS converted
+      FROM clicks c
+      JOIN affiliates a ON a.id = c.affiliate_id
+      WHERE c.program_id = ?
+      ORDER BY c.created_at DESC
+      LIMIT ? OFFSET ?`,
+    )
+    .bind(programId, limit, offset)
+    .all<{
+      id: string;
+      program_id: string;
+      affiliate_id: string;
+      ip: string | null;
+      user_agent: string | null;
+      created_at: number;
+      affiliate_name: string;
+      affiliate_code: string;
+      converted: number;
+    }>();
+
+  return (results ?? []).map((r) => ({
+    id: r.id,
+    program_id: r.program_id,
+    affiliate_id: r.affiliate_id,
+    ip: r.ip,
+    user_agent: r.user_agent,
+    created_at: r.created_at,
+    affiliate_name: r.affiliate_name,
+    affiliate_code: r.affiliate_code,
+    converted: Boolean(r.converted),
+  }));
+}
+
+export async function listConversionLog(
+  db: D1Database,
+  programId: string,
+  limit = 50,
+  offset = 0,
+): Promise<ConversionLogRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT
+        cv.id, cv.program_id, cv.affiliate_id, cv.click_id, cv.order_id,
+        cv.amount_cents, cv.status, cv.status2, cv.currency, cv.created_at,
+        a.name AS affiliate_name, a.code AS affiliate_code
+      FROM conversions cv
+      JOIN affiliates a ON a.id = cv.affiliate_id
+      WHERE cv.program_id = ?
+      ORDER BY cv.created_at DESC
+      LIMIT ? OFFSET ?`,
+    )
+    .bind(programId, limit, offset)
+    .all<ConversionLogRow>();
+  return results ?? [];
 }
 
 export async function getProgramStats(db: D1Database, program: Program): Promise<ProgramStats> {

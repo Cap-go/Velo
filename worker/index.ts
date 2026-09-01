@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "./types";
 import { auth } from "./routes/auth";
 import { convert } from "./routes/convert";
+import { postback } from "./routes/postback";
 import { programs } from "./routes/programs";
 import { redirect } from "./routes/redirect";
 
@@ -12,12 +13,13 @@ app.use("*", async (c, next) => {
   c.header("X-Content-Type-Options", "nosniff");
 });
 
-app.get("/api/health", (c) => c.json({ ok: true, service: "velo" }));
+app.get("/api/health", (c) => c.json({ ok: true, service: "capve" }));
 
 app.route("/api/auth", auth);
 app.route("/api/programs", programs);
 app.route("/api/v1/convert", convert);
 app.route("/r", redirect);
+app.route("/click", postback);
 
 import { ATTRIBUTION_SNIPPET } from "./lib/urls";
 

@@ -95,6 +95,20 @@ describe("affiliate tracking flow", () => {
     const redirectUrl = new URL(location!);
     expect(redirectUrl.origin + redirectUrl.pathname).toBe(MERCHANT_DESTINATION);
     expect(redirectUrl.searchParams.get("velo_ref")).toBe(affiliate.code);
+    const clickId = redirectUrl.searchParams.get("click_id");
+    expect(clickId).toMatch(/^clk_/);
+
+    const postbackRes = await SELF.fetch(
+      `http://localhost/click?cnv_id=${encodeURIComponent(clickId!)}&payout=99.5&cnv_status=sale&order_id=order_postback_001`,
+    );
+    expect(postbackRes.status).toBe(200);
+    const postback = await json<{ status: string }>(postbackRes);
+    expect(postback.status).toBe("created");
+
+    const duplicatePostback = await SELF.fetch(
+      `http://localhost/click?cnv_id=${encodeURIComponent(clickId!)}&payout=99.5&order_id=order_postback_001`,
+    );
+    expect((await json<{ status: string }>(duplicatePostback)).status).toBe("duplicate");
 
     const convertRes = await SELF.fetch("http://localhost/api/v1/convert", {
       method: "POST",
@@ -138,12 +152,47 @@ describe("affiliate tracking flow", () => {
     }>(statsRes);
 
     expect(stats.totals.clicks).toBe(1);
-    expect(stats.totals.conversions).toBe(1);
-    expect(stats.totals.revenue_cents).toBe(9950);
-    expect(stats.totals.conversion_rate).toBe(100);
+    expect(stats.totals.conversions).toBe(2);
+    expect(stats.totals.revenue_cents).toBe(19900);
+    expect(stats.totals.conversion_rate).toBe(200);
     expect(stats.affiliates[0]?.code).toBe(affiliate.code);
     expect(stats.affiliates[0]?.clicks).toBe(1);
-    expect(stats.affiliates[0]?.conversions).toBe(1);
+    expect(stats.affiliates[0]?.conversions).toBe(2);
+  });
+
+  it("records conversion via click_id on JSON convert API", async () => {
+    const { authHeaders, program, convert_secret } = await createProgram();
+
+    const affiliateRes = await SELF.fetch(
+      `http://localhost/api/programs/${program.id}/affiliates`,
+      {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ name: "Click ID Partner" }),
+      },
+    );
+    const { affiliate, tracking_url } = await json<{
+      affiliate: { code: string };
+      tracking_url: string;
+    }>(affiliateRes);
+
+    const clickRes = await SELF.fetch(tracking_url, { redirect: "manual" });
+    const redirectUrl = new URL(clickRes.headers.get("Location")!);
+    const clickId = redirectUrl.searchParams.get("click_id")!;
+
+    const convertRes = await SELF.fetch("http://localhost/api/v1/convert", {
+      method: "POST",
+      headers: convertHeaders(convert_secret),
+      body: JSON.stringify({
+        order_id: "order_click_id",
+        amount: 25,
+        click_id: clickId,
+      }),
+    });
+    expect(convertRes.status).toBe(200);
+    const body = await json<{ status: string; conversion: { click_id: string } }>(convertRes);
+    expect(body.status).toBe("created");
+    expect(body.conversion.click_id).toBe(clickId);
   });
 
   it("dedupes conversions by program and order id across affiliates", async () => {

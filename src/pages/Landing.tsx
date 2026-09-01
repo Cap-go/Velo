@@ -34,6 +34,9 @@ export function LandingPage() {
     <Shell
       cta={
         <>
+          <Link className="btn btn-ghost" to="/docs">
+            Docs
+          </Link>
           <a className="btn btn-ghost" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
             GitHub
           </a>

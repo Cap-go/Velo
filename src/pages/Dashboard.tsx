@@ -1,25 +1,38 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { CodeBlock } from "../components/CodeBlock";
 import { ErrorBox, Field, Shell } from "../components/ui";
+import { snippetScriptTag } from "../lib/integration-examples";
 import {
   api,
   formatMoney,
   formatPercent,
-  type Affiliate,
+  type ClickLogRow,
+  type ConversionLogRow,
   type Program,
   type ProgramStats,
+  type ProgramTracking,
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
+type Tab = "overview" | "clicklog" | "conversions";
+
 export function DashboardPage() {
   const { user, accessRequired, loading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = (searchParams.get("tab") as Tab) || "overview";
+
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<ProgramStats | null>(null);
+  const [tracking, setTracking] = useState<ProgramTracking | null>(null);
+  const [clicks, setClicks] = useState<ClickLogRow[]>([]);
+  const [conversions, setConversions] = useState<ConversionLogRow[]>([]);
   const [programName, setProgramName] = useState("");
   const [destinationUrl, setDestinationUrl] = useState("");
   const [editDestinationUrl, setEditDestinationUrl] = useState("");
+  const [s2sPostbackUrl, setS2sPostbackUrl] = useState("");
   const [affiliateName, setAffiliateName] = useState("");
   const [lastLink, setLastLink] = useState("");
   const [convertSecretOnce, setConvertSecretOnce] = useState("");
@@ -40,6 +53,9 @@ export function DashboardPage() {
   useEffect(() => {
     if (!selectedId) {
       setStats(null);
+      setTracking(null);
+      setClicks([]);
+      setConversions([]);
       return;
     }
 
@@ -57,15 +73,55 @@ export function DashboardPage() {
         }
       });
 
+    api
+      .tracking(selectedId)
+      .then(({ tracking: t }) => {
+        if (!cancelled) setTracking(t);
+      })
+      .catch(() => {
+        if (!cancelled) setTracking(null);
+      });
+
+    if (tab === "clicklog") {
+      api
+        .clicks(selectedId)
+        .then(({ clicks: rows }) => {
+          if (!cancelled) setClicks(rows);
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : "Failed to load clicklog");
+          }
+        });
+    }
+
+    if (tab === "conversions") {
+      api
+        .conversions(selectedId)
+        .then(({ conversions: rows }) => {
+          if (!cancelled) setConversions(rows);
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : "Failed to load conversions");
+          }
+        });
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [selectedId, lastLink]);
+  }, [selectedId, lastLink, tab]);
 
   useEffect(() => {
     const program = programs.find((p) => p.id === selectedId) ?? stats?.program;
     setEditDestinationUrl(program?.destination_url ?? "");
+    setS2sPostbackUrl(program?.s2s_postback_url ?? "");
   }, [selectedId, programs, stats?.program]);
+
+  function setTab(next: Tab) {
+    setSearchParams(next === "overview" ? {} : { tab: next });
+  }
 
   if (loading) {
     return (
@@ -82,15 +138,6 @@ export function DashboardPage() {
           <h1 className="text-2xl font-bold">Sign in with Cloudflare Access</h1>
           <p className="mt-3 text-[var(--velo-muted)]">
             This dashboard requires Cloudflare Access. Sign in to continue.
-          </p>
-          <p className="mt-4 text-sm text-[var(--velo-muted)]">
-            <a className="underline" href="/app">
-              Try again
-            </a>
-            {" · "}
-            <Link className="underline" to="/">
-              Back to home
-            </Link>
           </p>
         </div>
       </Shell>
@@ -123,7 +170,7 @@ export function DashboardPage() {
     }
   }
 
-  async function saveDestination(e: FormEvent) {
+  async function saveProgramSettings(e: FormEvent) {
     e.preventDefault();
     if (!selectedId) return;
     setBusy(true);
@@ -131,11 +178,14 @@ export function DashboardPage() {
     try {
       const { program } = await api.updateProgram(selectedId, {
         destination_url: editDestinationUrl,
+        s2s_postback_url: s2sPostbackUrl.trim() || null,
       });
       setPrograms((prev) => prev.map((item) => (item.id === program.id ? program : item)));
       if (stats) setStats({ ...stats, program });
+      const { tracking: t } = await api.tracking(selectedId);
+      setTracking(t);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update destination");
+      setError(err instanceof Error ? err.message : "Could not update program");
     } finally {
       setBusy(false);
     }
@@ -165,16 +215,40 @@ export function DashboardPage() {
   return (
     <Shell
       cta={
-        <span className="hidden text-sm text-[var(--velo-muted)] sm:inline">{user.email}</span>
+        <>
+          <Link className="btn btn-ghost" to="/docs">
+            Docs
+          </Link>
+          <span className="hidden text-sm text-[var(--velo-muted)] sm:inline">{user.email}</span>
+        </>
       }
     >
       <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="mt-2 text-[var(--velo-muted)]">
-            Manage programs, affiliates, and see performance at a glance.
+            Programs, affiliates, clicklog, and conversions.
           </p>
         </div>
+
+        <nav className="flex flex-wrap gap-2">
+          {(
+            [
+              ["overview", "Overview"],
+              ["clicklog", "Clicklog"],
+              ["conversions", "Conversions"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              className={`btn ${tab === key ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setTab(key)}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
 
         <ErrorBox message={error} />
 
@@ -202,9 +276,6 @@ export function DashboardPage() {
               </button>
             </form>
             <div className="mt-5 space-y-2">
-              {programs.length === 0 && (
-                <p className="text-sm text-[var(--velo-muted)]">No programs yet.</p>
-              )}
               {programs.map((program) => (
                 <button
                   key={program.id}
@@ -224,179 +295,289 @@ export function DashboardPage() {
           </section>
 
           <section className="space-y-6">
-            {selectedProgram ? (
-              <>
-                <div className="card p-5">
-                  <h2 className="font-semibold">Program details</h2>
-                  {convertSecretOnce && selectedProgram.id === selectedId && (
-                    <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
-                      <p className="text-sm font-semibold text-amber-900">
-                        Conversion secret (shown once — store server-side)
-                      </p>
-                      <p className="mono mt-2 break-all text-sm text-amber-950">
-                        {convertSecretOnce}
-                      </p>
-                    </div>
-                  )}
-                  <form className="mt-4 space-y-3" onSubmit={saveDestination}>
-                    <Field
-                      label="Destination URL"
-                      type="url"
-                      placeholder="https://yourapp.com/pricing"
-                      value={editDestinationUrl}
-                      onChange={(e) => setEditDestinationUrl(e.target.value)}
-                      required
-                    />
-                    <button className="btn btn-secondary" disabled={busy} type="submit">
-                      Save destination
-                    </button>
-                  </form>
-                  <p className="mt-4 text-sm text-[var(--velo-muted)]">
-                    Tracking links redirect here and append{" "}
-                    <span className="mono">velo_ref</span> for merchant-site attribution.
-                  </p>
-                  <p className="mt-4 text-sm text-[var(--velo-muted)]">
-                    Record conversions from your server with{" "}
-                    <span className="mono">X-Program-Secret</span> (never in browser JS).
-                  </p>
-                  <pre className="mono mt-4 overflow-x-auto rounded-xl bg-[var(--velo-bg)] p-3 text-xs leading-relaxed">
-                    {`// Server-side checkout handler
-const affiliateCode = req.body.affiliate_code; // from form / localStorage
-
-await fetch("${appBaseUrl()}/api/v1/convert", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "X-Program-Secret": process.env.CAPVE_CONVERT_SECRET
-  },
-  body: JSON.stringify({
-    order_id: "order_123",
-    amount: 49,
-    affiliate_code: affiliateCode
-  })
-});`}
-                  </pre>
-                  <p className="mt-3 text-sm text-[var(--velo-muted)]">
-                    Browser attribution snippet (stores <span className="mono">velo_ref</span>{" "}
-                    only):{" "}
-                    <span className="mono">{`${appBaseUrl()}/api/v1/snippet`}</span>
-                  </p>
-                </div>
-
-                <div className="card p-5">
-                  <h2 className="font-semibold">Add affiliate</h2>
-                  {!selectedProgram.destination_url && (
-                    <p className="mt-2 text-sm text-amber-700">
-                      Set a destination URL before creating affiliate links.
-                    </p>
-                  )}
-                  <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={createAffiliate}>
-                    <Field
-                      label="Affiliate name"
-                      placeholder="Jane Partner"
-                      value={affiliateName}
-                      onChange={(e) => setAffiliateName(e.target.value)}
-                      required
-                    />
-                    <button
-                      className="btn btn-primary self-end sm:mt-7"
-                      disabled={busy || !selectedProgram.destination_url}
-                      type="submit"
-                    >
-                      Create link
-                    </button>
-                  </form>
-                  {lastLink && (
-                    <p className="mono mt-4 break-all rounded-xl bg-[var(--velo-accent-soft)] p-3 text-sm">
-                      {lastLink}
-                    </p>
-                  )}
-                </div>
-
-                {visibleStats && (
-                  <>
-                    <div className="stat-grid">
-                      <div className="card stat">
-                        <div className="stat-label">Clicks</div>
-                        <div className="stat-value">{visibleStats.totals.clicks}</div>
-                      </div>
-                      <div className="card stat">
-                        <div className="stat-label">Conversions</div>
-                        <div className="stat-value">{visibleStats.totals.conversions}</div>
-                      </div>
-                      <div className="card stat">
-                        <div className="stat-label">Revenue</div>
-                        <div className="stat-value">
-                          {formatMoney(visibleStats.totals.revenue_cents)}
-                        </div>
-                      </div>
-                      <div className="card stat">
-                        <div className="stat-label">Conversion rate</div>
-                        <div className="stat-value">
-                          {formatPercent(visibleStats.totals.conversion_rate)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="card overflow-hidden p-5">
-                      <h2 id="affiliates-heading" className="font-semibold">
-                        Affiliates
-                      </h2>
-                      <div className="mt-4 overflow-x-auto">
-                        <table className="table" aria-labelledby="affiliates-heading">
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Code</th>
-                              <th>Clicks</th>
-                              <th>Conversions</th>
-                              <th>Revenue</th>
-                              <th>Rate</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {visibleStats.affiliates.length === 0 && (
-                              <tr>
-                                <td colSpan={6} className="text-[var(--velo-muted)]">
-                                  No affiliates yet.
-                                </td>
-                              </tr>
-                            )}
-                            {visibleStats.affiliates.map((affiliate) => (
-                              <AffiliateRow key={affiliate.id} affiliate={affiliate} />
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
+            {!selectedProgram ? (
               <div className="card p-8 text-[var(--velo-muted)]">
-                Create your first program to start tracking affiliates.
+                Create your first program to start tracking.
               </div>
+            ) : tab === "clicklog" ? (
+              <ClicklogTable clicks={clicks} />
+            ) : tab === "conversions" ? (
+              <ConversionsTable conversions={conversions} />
+            ) : (
+              <OverviewPanel
+                busy={busy}
+                convertSecretOnce={convertSecretOnce}
+                lastLink={lastLink}
+                selectedId={selectedId}
+                selectedProgram={selectedProgram}
+                tracking={tracking}
+                visibleStats={visibleStats}
+                editDestinationUrl={editDestinationUrl}
+                s2sPostbackUrl={s2sPostbackUrl}
+                affiliateName={affiliateName}
+                onAffiliateNameChange={setAffiliateName}
+                onDestinationChange={setEditDestinationUrl}
+                onS2sChange={setS2sPostbackUrl}
+                onCreateAffiliate={createAffiliate}
+                onSaveSettings={saveProgramSettings}
+              />
             )}
           </section>
         </div>
-
-        <p className="text-sm text-[var(--velo-muted)]">
-          Need the marketing site? <Link className="underline" to="/">Back to home</Link>
-        </p>
       </div>
     </Shell>
   );
 }
 
-function AffiliateRow({ affiliate }: { affiliate: ProgramStats["affiliates"][number] }) {
+function OverviewPanel({
+  busy,
+  convertSecretOnce,
+  lastLink,
+  selectedId,
+  selectedProgram,
+  tracking,
+  visibleStats,
+  editDestinationUrl,
+  s2sPostbackUrl,
+  affiliateName,
+  onAffiliateNameChange,
+  onDestinationChange,
+  onS2sChange,
+  onCreateAffiliate,
+  onSaveSettings,
+}: {
+  busy: boolean;
+  convertSecretOnce: string;
+  lastLink: string;
+  selectedId: string;
+  selectedProgram: Program;
+  tracking: ProgramTracking | null;
+  visibleStats: ProgramStats | null;
+  editDestinationUrl: string;
+  s2sPostbackUrl: string;
+  affiliateName: string;
+  onAffiliateNameChange: (v: string) => void;
+  onDestinationChange: (v: string) => void;
+  onS2sChange: (v: string) => void;
+  onCreateAffiliate: (e: FormEvent) => void;
+  onSaveSettings: (e: FormEvent) => void;
+}) {
+  const base = appBaseUrl();
   return (
-    <tr>
-      <td>{affiliate.name}</td>
-      <td className="mono">{affiliate.code}</td>
-      <td>{affiliate.clicks}</td>
-      <td>{affiliate.conversions}</td>
-      <td>{formatMoney(affiliate.revenue_cents)}</td>
-      <td>{formatPercent(affiliate.conversion_rate)}</td>
-    </tr>
+    <>
+      <div className="card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 className="font-semibold">Tracking & postback</h2>
+          <Link className="text-sm underline" to="/docs/server-conversions">
+            Integration docs
+          </Link>
+        </div>
+
+        {convertSecretOnce && (
+          <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">
+              Program secret (shown once — server-side only)
+            </p>
+            <p className="mono mt-2 break-all text-sm text-amber-950">{convertSecretOnce}</p>
+          </div>
+        )}
+
+        {tracking && (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-[var(--velo-muted)]">
+              Incoming postback URL (configure in affiliate network):
+            </p>
+            <CodeBlock>{tracking.postback_url}</CodeBlock>
+            <p className="text-sm text-[var(--velo-muted)]">
+              Attribution snippet for your merchant site:
+            </p>
+            <CodeBlock>{snippetScriptTag(base)}</CodeBlock>
+          </div>
+        )}
+
+        <form className="mt-4 space-y-3" onSubmit={onSaveSettings}>
+          <Field
+            label="Destination URL"
+            type="url"
+            value={editDestinationUrl}
+            onChange={(e) => onDestinationChange(e.target.value)}
+            required
+          />
+          <Field
+            label="S2S postback URL (outgoing)"
+            placeholder="https://traffic-source.com/postback?click={click_id}&payout={payout}"
+            value={s2sPostbackUrl}
+            onChange={(e) => onS2sChange(e.target.value)}
+          />
+          <button className="btn btn-secondary" disabled={busy} type="submit">
+            Save settings
+          </button>
+        </form>
+      </div>
+
+      <div className="card p-5">
+        <h2 className="font-semibold">Add affiliate</h2>
+        <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={onCreateAffiliate}>
+          <Field
+            label="Affiliate name"
+            placeholder="Jane Partner"
+            value={affiliateName}
+            onChange={(e) => onAffiliateNameChange(e.target.value)}
+            required
+          />
+          <button
+            className="btn btn-primary self-end sm:mt-7"
+            disabled={busy || !selectedProgram.destination_url}
+            type="submit"
+          >
+            Create link
+          </button>
+        </form>
+        {lastLink && (
+          <p className="mono mt-4 break-all rounded-xl bg-[var(--velo-accent-soft)] p-3 text-sm">
+            {lastLink}
+          </p>
+        )}
+      </div>
+
+      {visibleStats && (
+        <>
+          <div className="stat-grid">
+            <div className="card stat">
+              <div className="stat-label">Clicks</div>
+              <div className="stat-value">{visibleStats.totals.clicks}</div>
+            </div>
+            <div className="card stat">
+              <div className="stat-label">Conversions</div>
+              <div className="stat-value">{visibleStats.totals.conversions}</div>
+            </div>
+            <div className="card stat">
+              <div className="stat-label">Revenue</div>
+              <div className="stat-value">{formatMoney(visibleStats.totals.revenue_cents)}</div>
+            </div>
+            <div className="card stat">
+              <div className="stat-label">CR</div>
+              <div className="stat-value">{formatPercent(visibleStats.totals.conversion_rate)}</div>
+            </div>
+          </div>
+
+          <div className="card overflow-hidden p-5">
+            <h2 className="font-semibold">Affiliates</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Clicks</th>
+                    <th>Leads</th>
+                    <th>Revenue</th>
+                    <th>CR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleStats.affiliates.map((affiliate) => (
+                    <tr key={affiliate.id}>
+                      <td>{affiliate.name}</td>
+                      <td className="mono">{affiliate.code}</td>
+                      <td>{affiliate.clicks}</td>
+                      <td>{affiliate.conversions}</td>
+                      <td>{formatMoney(affiliate.revenue_cents)}</td>
+                      <td>{formatPercent(affiliate.conversion_rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function ClicklogTable({ clicks }: { clicks: ClickLogRow[] }) {
+  return (
+    <div className="card overflow-hidden p-5">
+      <h2 className="font-semibold">Clicklog</h2>
+      <div className="mt-4 overflow-x-auto">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Click ID</th>
+              <th>Affiliate</th>
+              <th>IP</th>
+              <th>Converted</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {clicks.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-[var(--velo-muted)]">
+                  No clicks yet.
+                </td>
+              </tr>
+            )}
+            {clicks.map((row) => (
+              <tr key={row.id}>
+                <td className="mono">{row.id}</td>
+                <td>
+                  {row.affiliate_name}{" "}
+                  <span className="mono text-[var(--velo-muted)]">({row.affiliate_code})</span>
+                </td>
+                <td className="mono">{row.ip ?? "—"}</td>
+                <td>{row.converted ? "Yes" : "No"}</td>
+                <td>{new Date(row.created_at).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ConversionsTable({ conversions }: { conversions: ConversionLogRow[] }) {
+  return (
+    <div className="card overflow-hidden p-5">
+      <h2 className="font-semibold">Conversions</h2>
+      <div className="mt-4 overflow-x-auto">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Click ID</th>
+              <th>Affiliate</th>
+              <th>Status</th>
+              <th>Revenue</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {conversions.length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-[var(--velo-muted)]">
+                  No conversions yet.
+                </td>
+              </tr>
+            )}
+            {conversions.map((row) => (
+              <tr key={row.id}>
+                <td className="mono">{row.order_id}</td>
+                <td className="mono">{row.click_id ?? "—"}</td>
+                <td>{row.affiliate_name}</td>
+                <td>
+                  {row.status}
+                  {row.status2 ? ` / ${row.status2}` : ""}
+                </td>
+                <td>{formatMoney(row.amount_cents)}</td>
+                <td>{new Date(row.created_at).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

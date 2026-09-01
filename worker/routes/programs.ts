@@ -5,12 +5,14 @@ import {
   getProgram,
   getProgramStats,
   listAffiliates,
+  listClickLog,
+  listConversionLog,
   listPrograms,
   updateProgram,
 } from "../db/queries";
 import type { Env } from "../types";
 import { apiKey, convertSecret, id, slugify } from "../lib/utils";
-import { buildTrackingUrl, parseHttpUrl } from "../lib/urls";
+import { buildPostbackUrl, buildTrackingUrl, parseHttpUrl } from "../lib/urls";
 import { requireUser } from "../lib/access";
 
 const programs = new Hono<{ Bindings: Env }>();
@@ -45,6 +47,7 @@ programs.post("/", async (c) => {
     api_key: apiKey(),
     destination_url: destination.toString(),
     convert_secret: secret,
+    s2s_postback_url: null,
     created_at: Date.now(),
   };
   await createProgram(c.env.DB, program);
@@ -56,8 +59,16 @@ programs.patch("/:id", async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-  const body = await c.req.json<{ name?: string; destination_url?: string }>();
-  const updates: { name?: string; destination_url?: string | null } = {};
+  const body = await c.req.json<{
+    name?: string;
+    destination_url?: string;
+    s2s_postback_url?: string | null;
+  }>();
+  const updates: {
+    name?: string;
+    destination_url?: string | null;
+    s2s_postback_url?: string | null;
+  } = {};
 
   if (body.name !== undefined) {
     const name = body.name.trim();
@@ -71,6 +82,11 @@ programs.patch("/:id", async (c) => {
       return c.json({ error: "Valid destination URL (http/https) required" }, 400);
     }
     updates.destination_url = destination.toString();
+  }
+
+  if (body.s2s_postback_url !== undefined) {
+    const raw = body.s2s_postback_url?.trim();
+    updates.s2s_postback_url = raw ? raw : null;
   }
 
   const program = await updateProgram(c.env.DB, c.req.param("id"), user.id, updates);
@@ -130,6 +146,49 @@ programs.post("/:id/affiliates", async (c) => {
 
   const trackingUrl = buildTrackingUrl(c.env.APP_URL, affiliate.code);
   return c.json({ affiliate, tracking_url: trackingUrl }, 201);
+});
+
+programs.get("/:id/tracking", async (c) => {
+  const user = await requireUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  if (!program) return c.json({ error: "Not found" }, 404);
+
+  return c.json({
+    tracking: {
+      postback_url: buildPostbackUrl(c.env.APP_URL),
+      s2s_postback_url: program.s2s_postback_url,
+      offer_url_macro: "{click_id}",
+      redirect_params: ["velo_ref", "click_id"],
+    },
+  });
+});
+
+programs.get("/:id/clicks", async (c) => {
+  const user = await requireUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  if (!program) return c.json({ error: "Not found" }, 404);
+
+  const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
+  const offset = Number(c.req.query("offset") ?? 0);
+  const clicks = await listClickLog(c.env.DB, program.id, limit, offset);
+  return c.json({ clicks });
+});
+
+programs.get("/:id/conversions", async (c) => {
+  const user = await requireUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+  const program = await getProgram(c.env.DB, c.req.param("id"), user.id);
+  if (!program) return c.json({ error: "Not found" }, 404);
+
+  const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
+  const offset = Number(c.req.query("offset") ?? 0);
+  const conversions = await listConversionLog(c.env.DB, program.id, limit, offset);
+  return c.json({ conversions });
 });
 
 export { programs };

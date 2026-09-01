@@ -55,9 +55,13 @@ export function buildTrackingUrl(appUrl: string, affiliateCode: string): string 
   return `${appUrl.replace(/\/$/, "")}/r/${affiliateCode}`;
 }
 
-/** Browser-safe: stores velo_ref from the landing URL into localStorage only. */
+export function buildPostbackUrl(appUrl: string): string {
+  return `${appUrl.replace(/\/$/, "")}/click?cnv_id={click_id}&payout={payout}&cnv_status={status}`;
+}
+
+/** Browser-safe: persists velo_ref and click_id from the landing URL into localStorage. */
 export const ATTRIBUTION_SNIPPET =
-  `(function(){var q=new URLSearchParams(location.search).get("velo_ref");if(q){try{localStorage.setItem("velo_ref",q)}catch(e){}}})();`;
+  `(function(){var p=new URLSearchParams(location.search);var r=p.get("velo_ref");var c=p.get("click_id");try{if(r)localStorage.setItem("velo_ref",r);if(c)localStorage.setItem("click_id",c)}catch(e){}})();`;
 
 export function serverConvertExample(appUrl: string): string {
   return `// Server-side only — never expose X-Program-Secret in browser JS

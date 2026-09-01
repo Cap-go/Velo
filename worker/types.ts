@@ -19,7 +19,41 @@ export type Program = {
   slug: string;
   api_key: string;
   destination_url: string | null;
+  s2s_postback_url: string | null;
   created_at: number;
+};
+
+export type Click = {
+  id: string;
+  program_id: string;
+  affiliate_id: string;
+  ip: string | null;
+  user_agent: string | null;
+  created_at: number;
+};
+
+export type ClickLogRow = Click & {
+  affiliate_name: string;
+  affiliate_code: string;
+  converted: boolean;
+};
+
+export type Conversion = {
+  id: string;
+  program_id: string;
+  affiliate_id: string;
+  click_id: string | null;
+  order_id: string;
+  amount_cents: number;
+  status: string;
+  status2: string | null;
+  currency: string;
+  created_at: number;
+};
+
+export type ConversionLogRow = Conversion & {
+  affiliate_name: string;
+  affiliate_code: string;
 };
 
 export type Affiliate = {
