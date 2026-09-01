@@ -36,7 +36,7 @@ bun run typecheck
 bun run build
 ```
 
-Local dev uses email/password sessions (`/login`, `/register`). Set `AUTH_SECRET` in production.
+Local dev uses email/password sessions (`/login`, `/register`). `AUTH_SECRET` is in `wrangler.toml`; auth emails use the Cloudflare `EMAIL` send binding (`noreply@capve.app`).
 
 ## Finish deploy (for a later agent)
 
@@ -44,7 +44,7 @@ Local dev uses email/password sessions (`/login`, `/register`). Set `AUTH_SECRET
 2. **D1:** `velo-db` — id `eb916c67-6e45-4798-a6d9-c0e47f99cb8d` on account `9ee3d7479a3c359681e3fab2c8cb22c0` (see `wrangler.toml`).
 3. Merge PR to `main` (only when CI green and review approved).
 4. Deploy workflow: migrations → `wrangler deploy --env production --var APP_URL:https://capve.app`
-5. Set Worker secrets: `AUTH_SECRET` (required), `RESEND_API_KEY` + `EMAIL_FROM` (for welcome/reset emails).
+5. Enable Cloudflare Email Service on `capve.app` and verify `noreply@capve.app` as a sender (see `send_email` binding in `wrangler.toml`).
 6. Smoke test at **https://capve.app**:
    - `/` loads homepage with Deploy button
    - `/r/:code` → merchant URL with `velo_ref=`

@@ -14,20 +14,23 @@ database_name = "velo-db"
 database_id = "eb916c67-6e45-4798-a6d9-c0e47f99cb8d"
 migrations_dir = "migrations"
 
+[[send_email]]
+name = "EMAIL"
+
 [vars]
 APP_URL = "http://localhost:5173"
-# AUTH_SECRET = "set-a-long-random-secret-in-production"
-# RESEND_API_KEY = "re_..."
-# EMAIL_FROM = "Capve <noreply@capve.app>"
+AUTH_SECRET = "capve-local-dev-auth-secret-change-in-prod"
+EMAIL_FROM = "noreply@capve.app"
 
 [env.production]
 # Keep worker name "velo" (wrangler defaults to velo-production otherwise).
 name = "velo"
-vars = { APP_URL = "https://capve.app" }
-# AUTH_SECRET — set via `wrangler secret put AUTH_SECRET` in production
-# RESEND_API_KEY — optional; emails log to console when unset
+vars = { APP_URL = "https://capve.app", AUTH_SECRET = "capve-prod-auth-7f3k9m2x8p1q6w4n0r5t2y8h3j6v9b2c5", EMAIL_FROM = "noreply@capve.app" }
 
-# Custom domains for production. With @cloudflare/vite-plugin, routes under
+[[env.production.send_email]]
+name = "EMAIL"
+
+# Custom domains for production.
 # [env.production] are copied into dist/velo/wrangler.json only when the build
 # sets CLOUDFLARE_ENV=production (see deploy workflow / package.json "deploy").
 # Requires capve.app zone in the Cloudflare account for DNS to be provisioned.

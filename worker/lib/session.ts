@@ -5,8 +5,7 @@ export const SESSION_COOKIE = "capve_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 function authSecret(env: Env): Uint8Array {
-  const secret = env.AUTH_SECRET ?? "capve-dev-auth-secret-change-me";
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(env.AUTH_SECRET);
 }
 
 export type SessionClaims = {

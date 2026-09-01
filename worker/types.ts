@@ -1,9 +1,19 @@
+export type EmailBinding = {
+  send: (message: {
+    to: string;
+    from: string;
+    subject: string;
+    html?: string;
+    text?: string;
+  }) => Promise<{ messageId: string }>;
+};
+
 export type Env = {
   DB: D1Database;
   ASSETS: Fetcher;
   APP_URL: string;
-  AUTH_SECRET?: string;
-  RESEND_API_KEY?: string;
+  AUTH_SECRET: string;
+  EMAIL?: EmailBinding;
   EMAIL_FROM?: string;
 };
 

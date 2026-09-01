@@ -7,34 +7,25 @@ type SendEmailInput = {
   text: string;
 };
 
-export async function sendEmail(env: Env, input: SendEmailInput): Promise<void> {
-  const apiKey = env.RESEND_API_KEY;
-  const from = env.EMAIL_FROM ?? "Capve <noreply@capve.app>";
+function emailFrom(env: Env): string {
+  return env.EMAIL_FROM ?? "noreply@capve.app";
+}
 
-  if (!apiKey) {
-    console.log(`[email] To: ${input.to} | ${input.subject}\n${input.text}`);
+export async function sendEmail(env: Env, input: SendEmailInput): Promise<void> {
+  const from = emailFrom(env);
+
+  if (!env.EMAIL) {
+    console.log(`[email] To: ${input.to} | From: ${from} | ${input.subject}\n${input.text}`);
     return;
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [input.to],
-      subject: input.subject,
-      html: input.html,
-      text: input.text,
-    }),
+  await env.EMAIL.send({
+    to: input.to,
+    from,
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
   });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Email delivery failed: ${res.status} ${body}`);
-  }
 }
 
 export function welcomeEmail(name: string | null, appUrl: string) {

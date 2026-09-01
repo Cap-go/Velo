@@ -11,3 +11,5 @@ migrations_dir = "migrations"
 
 [vars]
 APP_URL = "http://localhost:5173"
+AUTH_SECRET = "test-auth-secret"
+EMAIL_FROM = "noreply@capve.app"
