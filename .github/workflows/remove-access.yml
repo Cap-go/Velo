@@ -1,0 +1,25 @@
+name: Remove Cloudflare Access
+
+on:
+  workflow_dispatch:
+
+jobs:
+  remove-access:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 9ee3d7479a3c359681e3fab2c8cb22c0
+      APP_HOST: capve.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Delete Capve Access application
+        run: bun run remove-access
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

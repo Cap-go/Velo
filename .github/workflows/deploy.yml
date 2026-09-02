@@ -39,13 +39,19 @@ jobs:
 
       - name: Apply D1 migrations
         run: bunx wrangler d1 migrations apply velo-db --remote --env production
-        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Remove legacy Cloudflare Access app
+        run: bun run remove-access
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 9ee3d7479a3c359681e3fab2c8cb22c0
+          APP_HOST: capve.app
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 9ee3d7479a3c359681e3fab2c8cb22c0
-          command: deploy --env production --var APP_URL:https://capve.app
+          command: deploy --env production
