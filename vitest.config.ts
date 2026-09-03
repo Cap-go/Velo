@@ -9,6 +9,7 @@ export default defineWorkersConfig({
           bindings: {
             APP_URL: "http://localhost:5173",
             AUTH_SECRET: "test-auth-secret",
+            PLATFORM_ADMIN_EMAILS: "martindonadieu@gmail.com",
           },
         },
       },

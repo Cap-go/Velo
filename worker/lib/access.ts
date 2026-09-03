@@ -2,10 +2,11 @@ import type { Context } from "hono";
 import type { Env, User } from "../types";
 import type { SessionUser, TeamRole } from "../types-ops";
 import { findTeamMembership } from "../db/ops";
-import { getUserByEmail, getUserById } from "../db/queries";
+import { getUserById } from "../db/queries";
 import { readSessionCookie, verifySession } from "./session";
 
 async function resolveSession(db: D1Database, user: User): Promise<SessionUser> {
+  const is_platform_admin = user.is_platform_admin === 1;
   const membership = await findTeamMembership(db, user.email);
   if (membership) {
     return {
@@ -13,6 +14,7 @@ async function resolveSession(db: D1Database, user: User): Promise<SessionUser> 
       email: user.email,
       role: membership.role,
       account_id: membership.owner_user_id,
+      is_platform_admin,
     };
   }
   return {
@@ -20,6 +22,7 @@ async function resolveSession(db: D1Database, user: User): Promise<SessionUser> 
     email: user.email,
     role: "owner",
     account_id: user.id,
+    is_platform_admin,
   };
 }
 
@@ -54,6 +57,15 @@ export async function requireWrite(c: Context<{ Bindings: Env }>): Promise<Sessi
   const session = await requireUser(c);
   if (!session) return c.json({ error: "Unauthorized" }, 401);
   if (!canWrite(session.role)) return c.json({ error: "Forbidden" }, 403);
+  return session;
+}
+
+export async function requirePlatformAdmin(
+  c: Context<{ Bindings: Env }>,
+): Promise<SessionUser | Response> {
+  const session = await requireUser(c);
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+  if (!session.is_platform_admin) return c.json({ error: "Forbidden" }, 403);
   return session;
 }
 

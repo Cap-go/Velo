@@ -1,6 +1,30 @@
 export type TeamRole = "owner" | "admin" | "viewer";
 
-export type User = { id: string; email: string; role?: TeamRole; account_id?: string };
+export type User = {
+  id: string;
+  email: string;
+  role?: TeamRole;
+  account_id?: string;
+  is_platform_admin?: boolean;
+};
+
+export type PlatformOverview = {
+  users: number;
+  programs: number;
+  affiliates: number;
+  clicks: number;
+  conversions: number;
+  revenue_cents: number;
+};
+
+export type PlatformUserRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  is_platform_admin: number;
+  program_count: number;
+  created_at: number;
+};
 
 export type TeamMember = {
   id: string;
@@ -437,6 +461,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(name ? { name } : {}),
     }),
+  adminOverview: () => request<{ overview: PlatformOverview }>("/api/admin/overview"),
+  adminUsers: (limit = 50, offset = 0) =>
+    request<{ users: PlatformUserRow[]; total: number }>(
+      `/api/admin/users?limit=${limit}&offset=${offset}`,
+    ),
 };
 
 export function formatMoney(cents: number): string {

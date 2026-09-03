@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { Env } from "./types";
+import { admin } from "./routes/admin";
 import { auth } from "./routes/auth";
 import { convert } from "./routes/convert";
 import { entities } from "./routes/entities";
@@ -20,6 +21,7 @@ app.use("*", async (c, next) => {
 app.get("/api/health", (c) => c.json({ ok: true, service: "capve" }));
 
 app.route("/api/auth", auth);
+app.route("/api/admin", admin);
 app.route("/api/entities", entities);
 app.route("/api/programs", programs);
 app.route("/api/programs", routing);

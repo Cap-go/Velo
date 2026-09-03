@@ -15,6 +15,7 @@ export type Env = {
   AUTH_SECRET: string;
   EMAIL?: EmailBinding;
   EMAIL_FROM?: string;
+  PLATFORM_ADMIN_EMAILS?: string;
 };
 
 export type User = {
@@ -22,6 +23,7 @@ export type User = {
   email: string;
   name: string | null;
   email_verified: number;
+  is_platform_admin: number;
   created_at: number;
 };
 

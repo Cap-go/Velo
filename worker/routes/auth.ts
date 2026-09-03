@@ -10,8 +10,9 @@ import {
   sessionCookie,
   signSession,
 } from "../lib/session";
-import { isSecureRequest } from "../lib/auth";
+import { ensurePlatformAdmin, isPlatformAdminEmail } from "../lib/platform-admin";
 import { id } from "../lib/utils";
+import { isSecureRequest } from "../lib/auth";
 
 const auth = new Hono<{ Bindings: Env }>();
 
@@ -23,12 +24,19 @@ function validPassword(password: string): boolean {
   return password.length >= 8;
 }
 
-function publicUser(session: { id: string; email: string; role: string; account_id: string }) {
+function publicUser(session: {
+  id: string;
+  email: string;
+  role: string;
+  account_id: string;
+  is_platform_admin: boolean;
+}) {
   return {
     id: session.id,
     email: session.email,
     role: session.role,
     account_id: session.account_id,
+    is_platform_admin: session.is_platform_admin,
   };
 }
 
@@ -56,7 +64,14 @@ auth.post("/register", async (c) => {
   const now = Date.now();
 
   try {
-    await createUser(c.env.DB, { id: userId, email, password_hash, name, created_at: now });
+    await createUser(c.env.DB, {
+      id: userId,
+      email,
+      password_hash,
+      name,
+      is_platform_admin: isPlatformAdminEmail(c.env, email),
+      created_at: now,
+    });
   } catch (error) {
     if (isEmailTakenError(error)) return c.json({ error: "Email already registered" }, 409);
     throw error;
@@ -91,6 +106,8 @@ auth.post("/login", async (c) => {
 
   const user = await getUserByEmail(c.env.DB, email);
   if (!user) return c.json({ error: "Invalid email or password" }, 401);
+
+  await ensurePlatformAdmin(c.env.DB, c.env, email);
 
   const token = await signSession(c.env, { sub: user.id, email: user.email });
   const secure = isSecureRequest(new URL(c.req.url));

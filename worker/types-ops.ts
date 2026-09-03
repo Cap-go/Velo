@@ -5,6 +5,7 @@ export type SessionUser = {
   email: string;
   role: TeamRole;
   account_id: string;
+  is_platform_admin: boolean;
 };
 
 export type TeamMember = {

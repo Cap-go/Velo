@@ -13,20 +13,34 @@ import { affiliateCode, conversionRate, id, isUniqueConstraintError } from "../l
 const PROGRAM_COLUMNS =
   "id, user_id, name, slug, api_key, destination_url, s2s_postback_url, campaign_key, group_id, traffic_source_id, tags, status, created_at";
 
-const USER_COLUMNS = "id, email, name, email_verified, created_at";
+const USER_COLUMNS = "id, email, name, email_verified, is_platform_admin, created_at";
 
 export async function getUserByEmail(db: D1Database, email: string) {
   return db
     .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE email = ?`)
     .bind(email.toLowerCase())
-    .first<{ id: string; email: string; name: string | null; email_verified: number; created_at: number }>();
+    .first<{
+      id: string;
+      email: string;
+      name: string | null;
+      email_verified: number;
+      is_platform_admin: number;
+      created_at: number;
+    }>();
 }
 
 export async function getUserById(db: D1Database, userId: string) {
   return db
     .prepare(`SELECT ${USER_COLUMNS} FROM users WHERE id = ?`)
     .bind(userId)
-    .first<{ id: string; email: string; name: string | null; email_verified: number; created_at: number }>();
+    .first<{
+      id: string;
+      email: string;
+      name: string | null;
+      email_verified: number;
+      is_platform_admin: number;
+      created_at: number;
+    }>();
 }
 
 export async function getUserPasswordHash(db: D1Database, email: string) {
@@ -43,14 +57,22 @@ export async function createUser(
     email: string;
     password_hash: string;
     name?: string | null;
+    is_platform_admin?: boolean;
     created_at: number;
   },
 ) {
   await db
     .prepare(
-      "INSERT INTO users (id, email, password_hash, name, email_verified, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+      "INSERT INTO users (id, email, password_hash, name, email_verified, is_platform_admin, created_at) VALUES (?, ?, ?, ?, 1, ?, ?)",
     )
-    .bind(user.id, user.email.toLowerCase(), user.password_hash, user.name ?? null, user.created_at)
+    .bind(
+      user.id,
+      user.email.toLowerCase(),
+      user.password_hash,
+      user.name ?? null,
+      user.is_platform_admin ? 1 : 0,
+      user.created_at,
+    )
     .run();
 }
 

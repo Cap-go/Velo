@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT,
   name TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,
+  is_platform_admin INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
 

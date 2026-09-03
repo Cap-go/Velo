@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { AdminPanel } from "../components/AdminPanel";
 import { CampaignReportPanel } from "../components/CampaignReport";
 import { EntityPanel } from "../components/EntityPanel";
 import { PathEditor } from "../components/PathEditor";
@@ -21,7 +22,16 @@ import { useAuth } from "../lib/auth";
 import { appBaseUrl } from "../lib/constants";
 
 type Tab = "overview" | "clicklog" | "conversions";
-type EntityView = "campaigns" | "reports" | "sources" | "networks" | "offers" | "landers" | "groups" | "settings";
+type EntityView =
+  | "campaigns"
+  | "reports"
+  | "sources"
+  | "networks"
+  | "offers"
+  | "landers"
+  | "groups"
+  | "settings"
+  | "admin";
 
 const ENTITY_NAV: { key: EntityView; label: string }[] = [
   { key: "campaigns", label: "Campaigns" },
@@ -277,6 +287,15 @@ export function DashboardPage() {
               {label}
             </button>
           ))}
+          {user.is_platform_admin ? (
+            <button
+              className={`btn text-sm ${entity === "admin" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setEntity("admin")}
+              type="button"
+            >
+              Admin
+            </button>
+          ) : null}
         </nav>
 
         {entity === "campaigns" && (
@@ -303,7 +322,9 @@ export function DashboardPage() {
         <ErrorBox message={error} />
 
         {entity !== "campaigns" ? (
-          entity === "reports" ? (
+          entity === "admin" ? (
+            <AdminPanel />
+          ) : entity === "reports" ? (
             <CampaignReportPanel canWrite={user.role !== "viewer"} />
           ) : entity === "settings" ? (
             <OpsPanel role={user.role ?? "owner"} />
